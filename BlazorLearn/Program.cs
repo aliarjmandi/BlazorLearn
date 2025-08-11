@@ -1,10 +1,16 @@
 using BlazorLearn.Components;
+using BlazorLearn.Services.Implementations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+
+builder.Services.AddScoped<ProvinceService>();
+builder.Services.AddScoped<CityService>();
+builder.Services.AddScoped<PersonService>();
 
 var app = builder.Build();
 

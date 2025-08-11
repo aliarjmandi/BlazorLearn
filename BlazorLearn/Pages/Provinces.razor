@@ -1,0 +1,45 @@
+﻿@page "/provinces"
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Implementations
+
+@inject ProvinceService ProvinceService
+
+<h3>Provinces</h3>
+
+@if (provinces is null)
+{
+    <p>Loading...</p>
+}
+else if (!provinces.Any())
+{
+    <p>No provinces found.</p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Name</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in provinces)
+            {
+                <tr>
+                    <td>@p.Id</td>
+                    <td>@p.Name</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    private List<ProvinceDto>? provinces;
+
+    protected override async Task OnInitializedAsync()
+    {
+        provinces = (await ProvinceService.GetAllAsync()).ToList();
+    }
+}
