@@ -1,0 +1,227 @@
+﻿@page "/person/edit/{id:guid}"
+@rendermode InteractiveServer
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Implementations
+@inject ProvinceService ProvinceService
+@inject CityService CityService
+@inject PersonService PersonService
+@inject FileStorageService FileStorage
+@inject NavigationManager Nav
+@using Microsoft.AspNetCore.Components.Forms
+
+<h3 class="mb-3">ویرایش شخص</h3>
+
+@if (isLoading)
+{
+    <div class="alert alert-info">در حال بارگذاری...</div>
+}
+else
+{
+    @if (!string.IsNullOrEmpty(error))
+    {
+        <div class="alert alert-danger">@error</div>
+    }
+    @if (!string.IsNullOrEmpty(success))
+    {
+        <div class="alert alert-success">@success</div>
+    }
+
+    <EditForm Model="@model" OnValidSubmit="@HandleSubmit"
+              FormName="person-edit" enctype="multipart/form-data">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label class="form-label">نام</label>
+                <InputText class="form-control" @bind-Value="model.FirstName" />
+                <ValidationMessage For="@(() => model.FirstName)" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">نام خانوادگی</label>
+                <InputText class="form-control" @bind-Value="model.LastName" />
+                <ValidationMessage For="@(() => model.LastName)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">ایمیل</label>
+                <InputText class="form-control ltr" @bind-Value="model.Email" />
+                <ValidationMessage For="@(() => model.Email)" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">تلفن</label>
+                <InputText class="form-control ltr" @bind-Value="model.PhoneNumber" />
+                <ValidationMessage For="@(() => model.PhoneNumber)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">تاریخ تولد</label>
+                <InputDate class="form-control" @bind-Value="model.DateOfBirth" />
+                <ValidationMessage For="@(() => model.DateOfBirth)" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">جنسیت</label>
+                <InputSelect class="form-select" @bind-Value="model.Gender">
+                    <option value="">انتخاب کنید...</option>
+                    @foreach (var g in genders)
+                    {
+                        <option value="@g">@g</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => model.Gender)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">استان</label>
+                <InputSelect class="form-select"
+                             TValue="int"
+                             Value="model.ProvinceId"
+                             ValueChanged="@(EventCallback.Factory.Create<int>(this, OnProvinceChanged))"
+                             ValueExpression="@(() => model.ProvinceId)">
+                    <option value="0">انتخاب کنید...</option>
+                    @foreach (var p in provinces)
+                    {
+                        <option value="@p.Id">@p.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => model.ProvinceId)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">شهر</label>
+                <InputSelect class="form-select" TValue="int" @bind-Value="model.CityId" disabled="@(!cities.Any())">
+                    <option value="0">انتخاب کنید...</option>
+                    @foreach (var c in cities)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => model.CityId)" />
+            </div>
+
+            <div class="col-12">
+                <label class="form-label">آدرس</label>
+                <InputTextArea class="form-control" rows="3" @bind-Value="model.Address" />
+                <ValidationMessage For="@(() => model.Address)" />
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">تصویر فعلی</label><br />
+                @if (!string.IsNullOrWhiteSpace(model.ProfileImagePath))
+                {
+                    <img src="@model.ProfileImagePath" class="rounded" style="width:120px;height:120px;object-fit:cover;" />
+                }
+                else
+                {
+                    <span class="text-muted">—</span>
+                }
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label">انتخاب تصویر جدید (اختیاری)</label>
+                <InputFile OnChange="OnFileSelected" />
+                @if (!string.IsNullOrEmpty(previewFileName))
+                {
+                    <div class="form-text">فایل انتخاب‌شده: @previewFileName</div>
+                }
+            </div>
+
+            <div class="col-12 mt-2">
+                <button type="submit" class="btn btn-success" disabled="@isSaving">
+                    @(isSaving ? "در حال ذخیره..." : "ذخیره تغییرات")
+                </button>
+                <button type="button"
+                        class="btn btn-secondary ms-2"
+                        @onclick="@(() => Nav.NavigateTo($"/person/{id}"))"
+                        disabled="@isSaving">
+                    انصراف
+                </button>
+            </div>
+        </div>
+    </EditForm>
+}
+
+@code {
+    [Parameter] public Guid id { get; set; }
+
+    private PersonEditDto model = new();
+    private List<ProvinceDto> provinces = new();
+    private List<CityDto> cities = new();
+    private readonly List<string> genders = new() { "Male", "Female", "Other" };
+    private string? error, success, previewFileName;
+    private bool isLoading, isSaving;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            provinces = (await ProvinceService.GetAllAsync()).ToList();
+            var data = await PersonService.GetEditAsync(id);
+            if (data is null) { error = "شخص یافت نشد."; return; }
+
+            model = data;
+
+            // بارگذاری شهرهای استان انتخاب‌شده
+            if (model.ProvinceId > 0)
+                cities = (await CityService.GetByProvinceIdAsync(model.ProvinceId)).ToList();
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { isLoading = false; }
+    }
+
+    private async Task OnProvinceChanged(int pid)
+    {
+        model.ProvinceId = pid;
+        model.CityId = 0;
+        cities.Clear();
+
+        if (pid > 0)
+            cities = (await CityService.GetByProvinceIdAsync(pid)).ToList();
+    }
+
+    private async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+            if (file is null) return;
+            const long max = 2 * 1024 * 1024;
+            using var ms = new MemoryStream();
+            await file.OpenReadStream(max).CopyToAsync(ms);
+
+            model.ProfileImageContent = ms.ToArray();
+            model.ProfileImageFileName = file.Name;
+            model.ProfileImageContentType = file.ContentType;
+            previewFileName = file.Name;
+        }
+        catch (Exception ex) { error = $"خطا در خواندن فایل: {ex.Message}"; }
+    }
+
+    private async Task HandleSubmit(EditContext _)
+    {
+        error = success = null;
+
+        if (model.ProvinceId <= 0) { error = "استان را انتخاب کنید."; return; }
+        if (model.CityId <= 0) { error = "شهر را انتخاب کنید."; return; }
+
+        isSaving = true;
+        try
+        {
+            // اگر فایل جدید انتخاب شده، ذخیره و مسیر را ست کن
+            if (model.ProfileImageContent is { Length: > 0 })
+            {
+                var url = await FileStorage.SaveProfileAsync(
+                    model.ProfileImageContent,
+                    model.ProfileImageFileName ?? "profile.jpg");
+                model.ProfileImagePath = url;
+            }
+
+            await PersonService.UpdateAsync(id, model);
+            success = "تغییرات با موفقیت ذخیره شد.";
+            Nav.NavigateTo($"/person/{id}");
+        }
+        catch (Exception ex) { error = $"خطا در ذخیره‌سازی: {ex.Message}"; }
+        finally { isSaving = false; }
+    }
+}

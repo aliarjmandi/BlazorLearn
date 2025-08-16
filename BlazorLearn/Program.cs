@@ -7,7 +7,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
-
+builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();

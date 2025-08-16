@@ -1,4 +1,6 @@
-﻿namespace BlazorLearn.Data.Models;
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BlazorLearn.Data.Models;
 
 public class Person
 {

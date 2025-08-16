@@ -1,40 +1,54 @@
-﻿using System;
-using BlazorLearn.Data.DTOs;
+﻿using BlazorLearn.Data.DTOs;
 using BlazorLearn.Services.Base;
+using Dapper;
 using Microsoft.Extensions.Configuration;
+using System;
 
 namespace BlazorLearn.Services.Implementations
 {
-    public class PersonService
+    public partial class PersonService
         : BaseService<PersonListItemDto, PersonRegistrationDto, Guid>
     {
         public PersonService(IConfiguration config) : base(config) { }
 
         // ---- READ (لیست‌ها با جوین استان/شهر) ----
         protected override string SqlSelectAll => @"
-            SELECT  p.Id,
-                    (p.FirstName + N' ' + p.LastName) AS FullName,
-                    p.Email,
-                    pr.Name AS ProvinceName,
-                    c.Name  AS CityName,
-                    p.CreatedAt
-            FROM dbo.Persons p
-            INNER JOIN dbo.Provinces pr ON p.ProvinceId = pr.Id
-            INNER JOIN dbo.Cities    c  ON p.CityId     = c.Id";
+                    SELECT 
+                        p.Id,
+                        p.FirstName,
+                        p.LastName,
+                        p.Email,
+                        p.PhoneNumber,
+                        p.DateOfBirth,
+                        pr.Name AS ProvinceName,
+                        c.Name  AS CityName,
+                        p.ProfileImagePath,
+                        p.CreatedAt
+                    FROM dbo.Persons AS p
+                    LEFT JOIN dbo.Provinces AS pr ON pr.Id = p.ProvinceId
+                    LEFT JOIN dbo.Cities    AS c  ON c.Id = p.CityId
+                    ";
 
         protected override string SqlSelectById => @"
-            SELECT  p.Id,
-                    (p.FirstName + N' ' + p.LastName) AS FullName,
-                    p.Email,
-                    pr.Name AS ProvinceName,
-                    c.Name  AS CityName,
-                    p.CreatedAt
-            FROM dbo.Persons p
-            INNER JOIN dbo.Provinces pr ON p.ProvinceId = pr.Id
-            INNER JOIN dbo.Cities    c  ON p.CityId     = c.Id
-            WHERE p.Id = @Id";
+                    SELECT 
+                        p.Id,
+                        p.FirstName,
+                        p.LastName,
+                        p.Email,
+                        p.PhoneNumber,
+                        p.DateOfBirth,
+                        pr.Name AS ProvinceName,
+                        c.Name  AS CityName,
+                        p.ProfileImagePath,
+                        p.CreatedAt
+                    FROM dbo.Persons AS p
+                    LEFT JOIN dbo.Provinces AS pr ON pr.Id = p.ProvinceId
+                    LEFT JOIN dbo.Cities    AS c  ON c.Id = p.CityId
+                    WHERE p.Id = @Id
+                    ";
 
-        protected override string SqlOrderBy => "p.CreatedAt DESC";
+        // ترتیب پیش‌فرض برای صفحه‌بندی و GetAll
+        protected override string SqlOrderBy => "CreatedAt DESC";
 
         // ---- WRITE (اینسرت/آپدیت) ----
         protected override string SqlInsert => @"
@@ -57,8 +71,7 @@ namespace BlazorLearn.Services.Implementations
                 dto.ProvinceId,
                 dto.CityId,
                 dto.Address,
-                // فعلاً مسیر فایل عکس را خالی می‌گذاریم؛ بعداً با آپلود مقداردهی می‌کنیم
-                ProfileImagePath = (string?)null
+                dto.ProfileImagePath
             };
 
         protected override string SqlUpdate => @"
@@ -90,7 +103,9 @@ namespace BlazorLearn.Services.Implementations
                 dto.Address,
                 ProfileImagePath = (string?)null
             };
-
+   
         protected override string SqlDelete => "DELETE FROM dbo.Persons WHERE Id=@Id";
+
+      
     }
 }

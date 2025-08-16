@@ -1,0 +1,121 @@
+﻿@page "/person/{id:guid}"
+@rendermode InteractiveServer
+
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Implementations
+@inject PersonService PersonService
+@inject NavigationManager Nav
+
+<h3 class="mb-4 text-center">جزئیات شخص</h3>
+
+@if (isLoading)
+{
+    <div class="alert alert-info">در حال بارگذاری...</div>
+}
+else if (!string.IsNullOrEmpty(error))
+{
+    <div class="alert alert-danger">@error</div>
+}
+else if (model is null)
+{
+    <div class="alert alert-warning">داده‌ای یافت نشد.</div>
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-body">
+            <div class="row g-4 align-items-start">
+
+                <!-- ستون تصویر -->
+                <div class="col-lg-3 order-lg-2">
+                    <div class="p-2 border rounded-3 bg-light text-center">
+                        @if (!string.IsNullOrWhiteSpace(model.ProfileImagePath))
+                        {
+                            <img src="@model.ProfileImagePath"
+                                 class="img-fluid rounded-3 shadow-sm"
+                                 style="max-height:260px; object-fit:cover;" />
+                        }
+                        else
+                        {
+                            <div class="text-muted py-5">بدون تصویر</div>
+                        }
+                    </div>
+                </div>
+
+                <!-- ستون اطلاعات -->
+                <div class="col-lg-9 order-lg-1">
+                    <ul class="list-group list-group-flush detail-list">
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">نام</span>
+                            <span class="fw-semibold">@model.FirstName</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">نام خانوادگی</span>
+                            <span class="fw-semibold">@model.LastName</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">ایمیل</span>
+                            <span class="fw-semibold ltr">@model.Email</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">تلفن</span>
+                            <span class="fw-semibold ltr">@model.PhoneNumber</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">تاریخ تولد</span>
+                            <span class="fw-semibold">@model.DateOfBirth.ToString("yyyy-MM-dd")</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">جنسیت</span>
+                            <span class="fw-semibold">@model.Gender</span>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">استان/شهر</span>
+                            <span class="fw-semibold">@model.ProvinceName / @model.CityName</span>
+                        </li>
+                        <li class="list-group-item">
+                            <div class="text-muted mb-1">آدرس</div>
+                            <div class="fw-semibold">@(!string.IsNullOrWhiteSpace(model.Address) ? model.Address : "—")</div>
+                        </li>
+                        <li class="list-group-item d-flex justify-content-between align-items-start">
+                            <span class="text-muted">ایجاد</span>
+                            <span class="fw-semibold">@model.CreatedAt.ToString("yyyy-MM-dd HH:mm")</span>
+                        </li>
+                    </ul>
+
+                    <div class="mt-4 d-flex gap-2 justify-content-end">
+                        <button @onclick="@(() => Nav.NavigateTo($"/person/edit/{model!.Id}"))"
+                                class="btn btn-primary">
+                            ویرایش
+                        </button>
+                        <button class="btn btn-secondary"
+                                @onclick="@(() => Nav.NavigateTo("/persons"))">
+                            بازگشت
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@code {
+    [Parameter] public Guid id { get; set; }
+
+    private PersonDetailsDto? model;
+    private bool isLoading;
+    private string? error;
+    private bool forceLoad = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        isLoading = true;
+        try
+        {
+            model = await PersonService.GetDetailsAsync(id);
+            if (model is null) error = "شخص یافت نشد.";
+        }
+        catch (Exception ex) { error = ex.Message; }
+        finally { isLoading = false; }
+    }
+}

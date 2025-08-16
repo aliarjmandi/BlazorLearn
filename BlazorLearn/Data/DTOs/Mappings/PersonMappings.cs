@@ -5,7 +5,7 @@ namespace BlazorLearn.Data.DTOs.Mappings;
 
 public static class PersonMappings
 {
-    public static Person ToEntity(this PersonRegistrationDto dto, string imagePath = "")
+    public static Person ToEntity(this PersonRegistrationDto dto)
         => new()
         {
             Id = Guid.NewGuid(),
@@ -18,7 +18,7 @@ public static class PersonMappings
             ProvinceId = dto.ProvinceId,
             CityId = dto.CityId,
             Address = dto.Address.Trim(),
-            ProfileImagePath = imagePath,
+            ProfileImagePath = dto.ProfileImagePath.Trim(),
             CreatedAt = DateTime.UtcNow
         };
 
@@ -26,10 +26,15 @@ public static class PersonMappings
         => new()
         {
             Id = p.Id,
-            FullName = $"{p.FirstName} {p.LastName}",
+            FirstName = p.FirstName,
+            LastName = p.LastName,
             Email = p.Email,
+            PhoneNumber = p.PhoneNumber,
+            DateOfBirth = p.DateOfBirth,
             ProvinceName = provinceName,
             CityName = cityName,
+            ProfileImagePath = p.ProfileImagePath,
             CreatedAt = p.CreatedAt
         };
+
 }

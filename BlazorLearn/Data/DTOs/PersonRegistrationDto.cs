@@ -16,7 +16,9 @@ public class PersonRegistrationDto
     [Phone, StringLength(20)]
     public string PhoneNumber { get; set; } = string.Empty;
 
-    [Required]
+    [Required(ErrorMessage = "تاریخ تولد الزامی است")]
+    [Range(typeof(DateTime), "1900-01-01", "2100-12-31", ErrorMessage = "تاریخ تولد معتبر نیست")]
+
     public DateTime DateOfBirth { get; set; }
 
     [Required, StringLength(12)]
@@ -33,6 +35,6 @@ public class PersonRegistrationDto
 
     // برای آپلود تصویر (UI در Blazor با IBrowserFile می‌خواند و محتوای بایت/نام فایل را به این DTO می‌دهد)
     public byte[]? ProfileImageContent { get; set; }
-    public string? ProfileImageFileName { get; set; }
+    public string? ProfileImagePath { get; set; }
     public string? ProfileImageContentType { get; set; }
 }

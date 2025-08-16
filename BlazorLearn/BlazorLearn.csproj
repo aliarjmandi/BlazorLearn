@@ -7,10 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Services\Implementations\PersonService.Search.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Dapper" Version="2.1.66" />
     <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.2" />
   </ItemGroup>
@@ -18,14 +14,11 @@
   <ItemGroup>
     <Folder Include="Components\Shared\" />
     <Folder Include="Data\Repositories\" />
+    <Folder Include="Pages\" />
     <Folder Include="Services\Interfaces\" />
     <Folder Include="wwwroot\css\" />
     <Folder Include="wwwroot\js\" />
     <Folder Include="wwwroot\uploads\" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="Services\Implementations\PersonService.Search.cs" />
   </ItemGroup>
 
 </Project>

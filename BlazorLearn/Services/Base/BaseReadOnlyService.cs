@@ -41,11 +41,11 @@ namespace BlazorLearn.Services.Base
             using var conn = GetConnection();
 
             var dataSql = $@"
-SELECT * FROM (
-    {SqlSelectAll}
-) AS Q
-ORDER BY {SqlOrderBy}
-OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+            SELECT * FROM (
+                {SqlSelectAll}
+            ) AS Q
+            ORDER BY {SqlOrderBy}
+            OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
 
             var countSql = $"SELECT COUNT(1) FROM ({SqlSelectAll}) AS Q;";
 

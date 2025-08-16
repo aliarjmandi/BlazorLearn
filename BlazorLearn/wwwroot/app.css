@@ -1,5 +1,33 @@
+﻿/* فونت‌های خودت */
+@font-face {
+    font-family: 'IRANSansWeb';
+    src: url('/fonts/IRANSans/IRANSansWeb.woff2') format('woff2'), url('/fonts/IRANSans/IRANSansWeb.woff') format('woff'), url('/fonts/IRANSans/IRANSansWeb.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'IRANSansWeb';
+    src: url('/fonts/IRANSans/IRANSansWeb_Bold.woff2') format('woff2'), url('/fonts/IRANSans/IRANSansWeb_Bold.woff') format('woff'), url('/fonts/IRANSans/IRANSansWeb_Bold.ttf') format('truetype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+/* بوت‌استرپ از این متغیر می‌خواند؛ ما همین را عوض می‌کنیم */
+:root {
+    --bs-body-font-family: 'IRANSansWeb', Tahoma, Arial, sans-serif;
+}
+
+/* اختیاری: اگر باز چیزی override کرد، این هم کمک می‌کند */
 html, body {
-    font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+    font-family: var(--bs-body-font-family) !important;
+}
+
+/* راست‌به‌چپ سراسری (اگر نیاز داری) */
+html {
+    direction: rtl;
 }
 
 a, .btn-link {
@@ -48,4 +76,20 @@ h1:focus {
 
 .darker-border-checkbox.form-check-input {
     border-color: #929292;
+}
+
+
+/* خوانایی آیتم‌های جزئیات */
+.detail-list .list-group-item {
+    background-color: #fff;
+}
+
+    .detail-list .list-group-item:nth-child(even) {
+        background-color: #f8f9fa; /* راه‌راه ملایم */
+    }
+
+/* متن‌های LTR مثل ایمیل/شماره */
+.ltr {
+    direction: ltr;
+    text-align: left;
 }
