@@ -32,6 +32,17 @@ else
         <ValidationSummary />
 
         <div class="row g-3">
+
+            <div class="col-md-6">
+                <label class="form-label">کد ملی</label>
+                <InputText class="form-control" @bind-Value="model.NationalCode" />
+                <ValidationMessage For="@(() => model.NationalCode)" />
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">ایمیل</label>
+                <InputText class="form-control ltr" @bind-Value="model.Email" />
+                <ValidationMessage For="@(() => model.Email)" />
+            </div>
             <div class="col-md-6">
                 <label class="form-label">نام</label>
                 <InputText class="form-control" @bind-Value="model.FirstName" />
@@ -42,18 +53,11 @@ else
                 <InputText class="form-control" @bind-Value="model.LastName" />
                 <ValidationMessage For="@(() => model.LastName)" />
             </div>
-
-            <div class="col-md-6">
-                <label class="form-label">ایمیل</label>
-                <InputText class="form-control ltr" @bind-Value="model.Email" />
-                <ValidationMessage For="@(() => model.Email)" />
-            </div>
             <div class="col-md-6">
                 <label class="form-label">تلفن</label>
                 <InputText class="form-control ltr" @bind-Value="model.PhoneNumber" />
                 <ValidationMessage For="@(() => model.PhoneNumber)" />
             </div>
-
             <div class="col-md-6">
                 <label class="form-label">تاریخ تولد</label>
                 <InputDate class="form-control" @bind-Value="model.DateOfBirth" />
@@ -144,7 +148,7 @@ else
 @code {
     [Parameter] public Guid id { get; set; }
 
-    private PersonEditDto model = new();
+    private PersonWriteDto model = new();
     private List<ProvinceDto> provinces = new();
     private List<CityDto> cities = new();
     private readonly List<string> genders = new() { "Male", "Female", "Other" };

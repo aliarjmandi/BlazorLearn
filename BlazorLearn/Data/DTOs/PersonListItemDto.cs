@@ -1,4 +1,5 @@
 ﻿using System;
+using System.ComponentModel.DataAnnotations;
 
 namespace BlazorLearn.Data.DTOs
 {
@@ -21,5 +22,7 @@ namespace BlazorLearn.Data.DTOs
 
         // اگر جایی خواستی فقط نام کامل را نمایش بدهی
         public string FullName => $"{FirstName} {LastName}".Trim();
+       
+        public string NationalCode { get; set; } = string.Empty;
     }
 }

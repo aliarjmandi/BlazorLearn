@@ -40,5 +40,10 @@ namespace BlazorLearn.Data.DTOs
         public byte[]? ProfileImageContent { get; set; }
         public string? ProfileImageFileName { get; set; }
         public string? ProfileImageContentType { get; set; }
+
+        [Required, StringLength(10, MinimumLength = 10, ErrorMessage = "کد ملی باید 10 رقم باشد")]
+        public string NationalCode { get; set; } = string.Empty;
+
+        public Guid? UserId { get; set; }   // اختیاری
     }
 }

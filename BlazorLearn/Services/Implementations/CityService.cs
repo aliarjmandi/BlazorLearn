@@ -1,10 +1,6 @@
-﻿
-using System.Collections.Generic;
-using System.Threading.Tasks;
-using BlazorLearn.Data.DTOs;
+﻿using BlazorLearn.Data.DTOs;
 using BlazorLearn.Services.Base;
 using Dapper;
-using Microsoft.Extensions.Configuration;
 
 namespace BlazorLearn.Services.Implementations
 {

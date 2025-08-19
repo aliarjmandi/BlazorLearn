@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-
-namespace BlazorLearn.Services.Base
+﻿namespace BlazorLearn.Services.Base
 {
     public interface IGenericService<TReadDto, TWriteDto, TKey>
         : IReadOnlyService<TReadDto, TKey>

@@ -44,6 +44,7 @@ else
             <thead>
                 <tr>
                     <th style="width:56px">#</th>
+                    <th>کد ملی</th>
                     <th>نام</th>
                     <th>نام خانوادگی</th>
                     <th>ایمیل</th>
@@ -55,43 +56,50 @@ else
                 </tr>
             </thead>
             <tbody>
-            @* این دستور در واقع یه ترفند لیکن برای گرفتن هم شیء و هم ایندکس در حلقه است. *@
-            @* این روش برای وقتی خوبه که علاوه بر داده، به شماره ردیف هم نیاز داشته باشی (مثلاً برای نمایش ستون شماره در جدول). *@
-            @* "LINQ projection with index" یا "Anonymous type projection with index" *@
+                @* این دستور در واقع یه ترفند لیکن برای گرفتن هم شیء و هم ایندکس در حلقه است. *@
+                @* این روش برای وقتی خوبه که علاوه بر داده، به شماره ردیف هم نیاز داشته باشی (مثلاً برای نمایش ستون شماره در جدول). *@
+                @* "LINQ projection with index" یا "Anonymous type projection with index" *@
 
-            @foreach (var row in items.Select((p, i) => new { p, i }))
-            {
-                var index = (currentPage - 1) * pageSize + row.i + 1;
-                <tr>
-                    <td>@index</td>
-                    <td>@row.p.FirstName</td>
-                    <td>@row.p.LastName</td>
-                    <td class="ltr">@row.p.Email</td>
-                    <td class="ltr">@row.p.PhoneNumber</td>
-                    <td>@row.p.ProvinceName / @row.p.CityName</td>
-                    <td>@row.p.DateOfBirth.ToString("yyyy-MM-dd")</td>
-                    <td>
-                        @if (!string.IsNullOrWhiteSpace(row.p.ProfileImagePath))
-                        {
-                            <img src="@row.p.ProfileImagePath" class="rounded" style="width:42px;height:42px;object-fit:cover;" />
-                        }
-                        else
-                        {
-                            <span class="text-muted">—</span>
-                        }
-                    </td>
-                    <td>
-                        <div class="btn-group" role="group">
-                            <button class="btn btn-sm btn-outline-primary"
-                                    @onclick="() => GoDetails(row.p.Id)">جزئیات</button>
-                            <button class="btn btn-sm btn-primary"
-                                    @onclick="() => GoEdit(row.p.Id)">ویرایش</button>
-                            <button class="btn btn-sm btn-danger"
-                                    @onclick="() => DeleteAsync(row.p.Id)">حذف</button>
-                        </div>
-                    </td>
-                </tr>
-            }
+                @foreach (var row in items.Select((p, i) => new { p, i }))
+                {
+                    var index = (currentPage - 1) * pageSize + row.i + 1;
+                    <tr>
+                        <td>@index</td>
+                        <td>@row.p.NationalCode</td>
+                        <td>@row.p.FirstName</td>
+                        <td>@row.p.LastName</td>
+                        <td class="ltr">@row.p.Email</td>
+                        <td class="ltr">@row.p.PhoneNumber</td>
+                        <td>@row.p.ProvinceName / @row.p.CityName</td>
+                        <td>@row.p.DateOfBirth.ToString("yyyy-MM-dd")</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(row.p.ProfileImagePath))
+                            {
+                                <img src="@row.p.ProfileImagePath" class="rounded" style="width:42px;height:42px;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-outline-primary"
+                                        @onclick="() => GoDetails(row.p.Id)">
+                                    جزئیات
+                                </button>
+                                <button class="btn btn-sm btn-primary"
+                                        @onclick="() => GoEdit(row.p.Id)">
+                                    ویرایش
+                                </button>
+                                <button class="btn btn-sm btn-danger"
+                                        @onclick="() => DeleteAsync(row.p.Id)">
+                                    حذف
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                }
             </tbody>
         </table>
     </div>
@@ -103,7 +111,7 @@ else
                 <button class="page-link" @onclick="@(async () => await GoToPageAsync(1))">&laquo;</button>
             </li>
             <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage-1))">قبلی</button>
+                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage - 1))">قبلی</button>
             </li>
             <li class="page-item disabled">
                 <span class="page-link">
@@ -112,7 +120,7 @@ else
                 </span>
             </li>
             <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage+1))">بعدی</button>
+                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage + 1))">بعدی</button>
             </li>
             <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
                 <button class="page-link" @onclick="@(async () => await GoToPageAsync(totalPages))">&raquo;</button>
@@ -129,7 +137,7 @@ else
     private int currentPage = 1;
     private int pageSize = 10;
     private int totalCount = 0;
-    
+
     //expression-bodied property
     //هر بار که totalPages در کدت فراخوانی شود، مقدارش دوباره محاسبه می‌شود.
     private int totalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
@@ -175,7 +183,7 @@ else
 
     // ناوبری—بعداً صفحه‌های جزئیات/ویرایش را پیاده می‌کنیم
     private void GoDetails(Guid id) => Nav.NavigateTo($"/person/{id}");
-    private void GoEdit(Guid id)    => Nav.NavigateTo($"/person/edit/{id}");
+    private void GoEdit(Guid id) => Nav.NavigateTo($"/person/edit/{id}");
 
     private async Task DeleteAsync(Guid id)
     {

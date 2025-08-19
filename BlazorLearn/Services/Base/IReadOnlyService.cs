@@ -1,7 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-
-namespace BlazorLearn.Services.Base
+﻿namespace BlazorLearn.Services.Base
 {
     //ارسال پارامتر به داخل اینترفیس
     public interface IReadOnlyService<TReadDto, TKey> 

@@ -1,6 +1,5 @@
 ﻿using BlazorLearn.Data.DTOs;
 using BlazorLearn.Services.Base;
-using Microsoft.Extensions.Configuration;
 
 namespace BlazorLearn.Services.Implementations
 {

@@ -1,4 +1,6 @@
-﻿namespace BlazorLearn.Data.DTOs
+﻿using System.ComponentModel.DataAnnotations;
+
+namespace BlazorLearn.Data.DTOs
 {
     public class PersonDetailsDto
     {
@@ -16,5 +18,6 @@
         public string? Address { get; set; }
         public string? ProfileImagePath { get; set; }
         public DateTime CreatedAt { get; set; }
+        public string NationalCode { get; set; } = string.Empty;
     }
 }

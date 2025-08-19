@@ -1,6 +1,4 @@
-﻿using System.Threading.Tasks;
-using Dapper;
-using Microsoft.Extensions.Configuration;
+﻿using Dapper;
 
 namespace BlazorLearn.Services.Base
 {

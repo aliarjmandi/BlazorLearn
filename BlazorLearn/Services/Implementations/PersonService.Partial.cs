@@ -7,33 +7,56 @@ public partial class PersonService
 {
     public async Task<PersonDetailsDto?> GetDetailsAsync(Guid id)
     {
-        const string sql = @"
-SELECT 
-  p.Id, p.FirstName, p.LastName, p.Email, p.PhoneNumber, p.DateOfBirth, p.Gender,
-  p.ProvinceId, p.CityId,
-  pr.Name AS ProvinceName, c.Name AS CityName,
-  p.Address, p.ProfileImagePath, p.CreatedAt
-FROM dbo.Persons p
-LEFT JOIN dbo.Provinces pr ON pr.Id = p.ProvinceId
-LEFT JOIN dbo.Cities    c  ON c.Id = p.CityId
-WHERE p.Id = @Id;";
+        const string sql =
+        @"
+        SELECT 
+          p.Id, 
+          p.FirstName, 
+          p.LastName, 
+          p.Email, 
+          p.PhoneNumber, 
+          p.DateOfBirth, 
+          p.Gender,
+          p.ProvinceId, p.CityId,
+          pr.Name AS ProvinceName, 
+          c.Name AS CityName,
+          p.Address, 
+          p.ProfileImagePath, 
+          p.CreatedAt, 
+          p.NationalCode,
+          p.UserId
+        FROM dbo.Persons p
+          LEFT JOIN dbo.Provinces pr ON pr.Id = p.ProvinceId
+          LEFT JOIN dbo.Cities    c  ON c.Id = p.CityId
+        WHERE p.Id = @Id;";
 
         using var conn = GetConnection();              // از کلاس پایه
         return await conn.QueryFirstOrDefaultAsync<PersonDetailsDto>(sql, new { Id = id });
     }
 
     // اگر برای ویرایش هم DTO متفاوت داری:
-    public async Task<PersonEditDto?> GetEditAsync(Guid id)
+    public async Task<PersonWriteDto?> GetEditAsync(Guid id)
     {
         const string sql = @"
-SELECT 
-  p.Id, p.FirstName, p.LastName, p.Email, p.PhoneNumber, p.DateOfBirth, p.Gender,
-  p.ProvinceId, p.CityId, p.Address, p.ProfileImagePath
-FROM dbo.Persons p
-WHERE p.Id = @Id;";
+        SELECT 
+          p.Id, 
+          p.FirstName, 
+          p.LastName, 
+          p.Email, 
+          p.PhoneNumber, 
+          p.DateOfBirth, 
+          p.Gender,
+          p.ProvinceId, 
+          p.CityId, 
+          p.Address, 
+          p.ProfileImagePath,
+          p.NationalCode,
+          p.UserId
+        FROM dbo.Persons p
+          WHERE p.Id = @Id;";
 
         using var conn = GetConnection();
-        return await conn.QueryFirstOrDefaultAsync<PersonEditDto>(sql, new { Id = id });
+        return await conn.QueryFirstOrDefaultAsync<PersonWriteDto>(sql, new { Id = id });
     }
 
     /// <summary>
@@ -82,4 +105,29 @@ OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
 
         return (items, total);
     }
+
+    public async Task<int> AttachUserAsync(Guid personId, Guid userId)
+    {
+        const string sql = @"UPDATE dbo.Persons 
+                         SET UserId = @UserId 
+                         WHERE Id = @PersonId;";
+
+        using var conn = GetConnection();
+        var affected = await conn.ExecuteAsync(sql, new { PersonId = personId, UserId = userId });
+        return affected; // تعداد ردیف‌های به‌روزرسانی‌شده (0 یا 1)
+    }
+
+    public async Task<int> DetachUserAsync(Guid personId)
+    {
+        const string sql = @"UPDATE dbo.Persons 
+                         SET UserId = NULL 
+                         WHERE Id = @PersonId;";
+
+        using var conn = GetConnection();
+        return await conn.ExecuteAsync(sql, new { PersonId = personId });
+    }
+
+
+
+
 }

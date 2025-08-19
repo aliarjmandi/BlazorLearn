@@ -5,7 +5,7 @@ namespace BlazorLearn.Data.DTOs.Mappings;
 
 public static class PersonMappings
 {
-    public static Person ToEntity(this PersonRegistrationDto dto)
+    public static Person ToEntity(this PersonWriteDto dto)
         => new()
         {
             Id = Guid.NewGuid(),

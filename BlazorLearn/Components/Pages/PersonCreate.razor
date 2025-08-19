@@ -3,21 +3,13 @@
 @using BlazorLearn.Data.DTOs
 @using BlazorLearn.Services.Implementations
 @using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
 @inject ProvinceService ProvinceService
 @inject CityService CityService
 @inject PersonService PersonService
 @inject FileStorageService FileStorage
 
 <h3 class="mb-3">ثبت‌نام شخص</h3>
-
-
-@* <br />
-
-<button class="btn btn-warning"
-        @onclick=@(() => success = $"Clicked at {DateTime.Now:T}")>
-    تست کلیک
-</button>
-<br /> *@
 
 @if (isLoading)
 {
@@ -44,6 +36,22 @@ else
         <ValidationSummary />
 
         <div class="row g-3">
+
+            <!-- کد ملی -->
+            <div class="col-md-6">
+                <label class="form-label">کد ملی</label>
+                <InputText class="form-control" @bind-Value="model.NationalCode" />
+                <ValidationMessage For="@(() => model.NationalCode)" />
+            </div>
+
+            <!-- ایمیل -->
+            <div class="col-md-6">
+                <label class="form-label">ایمیل</label>
+                <InputText class="form-control" @bind-Value="model.Email" />
+                <ValidationMessage For="@(() => model.Email)" />
+            </div>
+
+
             <!-- نام -->
             <div class="col-md-6">
                 <label class="form-label">نام</label>
@@ -58,12 +66,6 @@ else
                 <ValidationMessage For="@(() => model.LastName)" />
             </div>
 
-            <!-- ایمیل -->
-            <div class="col-md-6">
-                <label class="form-label">ایمیل</label>
-                <InputText class="form-control" @bind-Value="model.Email" />
-                <ValidationMessage For="@(() => model.Email)" />
-            </div>
 
             <!-- شماره تماس -->
             <div class="col-md-6">
@@ -156,7 +158,7 @@ else
 }
 
 @code {
-    private PersonRegistrationDto model = new()
+    private PersonWriteDto model = new()
     {
         //مقدار دهی اولیه تاریخ
         DateOfBirth = DateTime.Today // یا یک تاریخ دلخواه
@@ -240,7 +242,6 @@ else
                 model.ProfileImagePath = url;  // در DTO/سرویس اضافه‌اش کن
             }
 
-
             await PersonService.CreateAsync(model);
             success = "ثبت با موفقیت انجام شد.";
             ResetForm();
@@ -255,9 +256,38 @@ else
         }
     }
 
+
+    // نمونه سرویس/هندلر
+    public async Task<Guid> RegisterUserAndPersonAsync(
+        UserManager<IdentityUser<Guid>> userManager,
+        PersonService personService,
+        PersonWriteDto person,
+        string password)
+    {
+        // 1) ایجاد کاربر Identity
+        var user = new IdentityUser<Guid>
+        {
+            Id = Guid.NewGuid(),
+            UserName = person.Email,
+            Email = person.Email,
+            EmailConfirmed = true
+        };
+        var result = await userManager.CreateAsync(user, password);
+        if (!result.Succeeded)
+            throw new Exception(string.Join(" | ", result.Errors.Select(e => e.Description)));
+
+        // 2) اتصال به پروفایل
+        person.UserId = user.Id;
+
+        await personService.CreateAsync(person);
+        return user.Id;
+    }
+
+
+
     private void ResetForm()
     {
-        model = new PersonRegistrationDto();
+        model = new PersonWriteDto();
         cities.Clear();
         previewFileName = null;
         StateHasChanged();

@@ -1,7 +1,4 @@
-﻿// Services/Implementations/FileStorageService.cs
-using Microsoft.AspNetCore.Hosting;
-
-namespace BlazorLearn.Services.Implementations;
+﻿namespace BlazorLearn.Services.Implementations;
 
 public class FileStorageService
 {
