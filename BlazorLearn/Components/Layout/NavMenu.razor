@@ -1,4 +1,6 @@
-﻿<div class="top-row ps-3 navbar navbar-dark">
+﻿@implements IDisposable
+@inject NavigationManager NavigationManager
+<div class="top-row ps-3 navbar navbar-dark">
     <div class="container-fluid">
         <a class="navbar-brand" href="">فروشگاه آنلاین</a>
     </div>
@@ -18,12 +20,41 @@
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> شخص جدید
             </NavLink>
         </div>
-
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="/persons">
                 <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> لیست نفرات
             </NavLink>
         </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/Account/Register">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> ثبت نام
+            </NavLink>
+        </div>
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="/Account/Login">
+                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> لاگین
+            </NavLink>
+        </div>
     </nav>
 </div>
 
+@code {
+    private string? currentUrl;
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+
+}

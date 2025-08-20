@@ -106,7 +106,7 @@ OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
         return (items, total);
     }
 
-    public async Task<int> AttachUserAsync(Guid personId, Guid userId)
+    public async Task<int> AttachUserAsync(Guid personId, string userId)
     {
         const string sql = @"UPDATE dbo.Persons 
                          SET UserId = @UserId 

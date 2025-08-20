@@ -6,11 +6,16 @@
 @inject PersonService PersonService
 @inject NavigationManager Nav
 @inject IJSRuntime JS
+@inject AuthenticationStateProvider AuthStateProvider
 
 <h3 class="mb-3">لیست اشخاص</h3>
 
 <div class="d-flex gap-2 align-items-center mb-3">
+    
+    @if (isAdmin)
+    {
     <a class="btn btn-success" href="/person/new">+ افزودن شخص</a>
+    }
 
     <div class="ms-auto d-flex align-items-center gap-2">
         <label class="form-label m-0">تعداد در صفحه:</label>
@@ -138,12 +143,18 @@ else
     private int pageSize = 10;
     private int totalCount = 0;
 
+    private bool isAdmin;
+
     //expression-bodied property
     //هر بار که totalPages در کدت فراخوانی شود، مقدارش دوباره محاسبه می‌شود.
     private int totalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
 
     protected override async Task OnInitializedAsync()
     {
+        var authState = await AuthStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        isAdmin = user.IsInRole(Roles.Admin);
+
         await LoadPageAsync();
     }
 

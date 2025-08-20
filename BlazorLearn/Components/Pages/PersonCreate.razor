@@ -1,13 +1,17 @@
 ﻿@page "/person/new"
 @rendermode InteractiveServer
+@using BlazorLearn.Components.Account
 @using BlazorLearn.Data.DTOs
 @using BlazorLearn.Services.Implementations
+@using Microsoft.AspNetCore.Authorization
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
 @inject ProvinceService ProvinceService
 @inject CityService CityService
 @inject PersonService PersonService
 @inject FileStorageService FileStorage
+
+@attribute [Authorize(Roles = Roles.Admin)]
 
 <h3 class="mb-3">ثبت‌نام شخص</h3>
 
