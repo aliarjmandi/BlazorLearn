@@ -107,7 +107,7 @@ else
                 Slug = "",
                 SortOrder = NextSortOrder(null),
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
         }
     }
@@ -246,7 +246,7 @@ else
                 Slug = "",
                 SortOrder = NextSortOrder(parent.Id),
                 IsActive = true,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.Now
             };
         }
 
@@ -268,7 +268,7 @@ else
             Slug = n.Slug,
             SortOrder = n.SortOrder,
             IsActive = n.IsActive,
-            CreatedAt = DateTime.UtcNow // این مقدار آپدیت نمی‌شود
+            CreatedAt = DateTime.Now // این مقدار آپدیت نمی‌شود
         };
         editingDto = new CategoryWriteDto
         {
@@ -278,7 +278,7 @@ else
             Slug = n.Slug,
             SortOrder = n.SortOrder,
             IsActive = n.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
     }
 
@@ -358,7 +358,7 @@ else
             Slug = n.Slug,
             SortOrder = n.SortOrder,
             IsActive = val.Value,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
         await CategoryService.UpdateAsync(n.Id, dto);
         await ReloadAsync();
@@ -395,7 +395,7 @@ else
             Slug = a.Slug,
             SortOrder = b.SortOrder,
             IsActive = a.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
         var bDto = new CategoryWriteDto
         {
@@ -405,7 +405,7 @@ else
             Slug = b.Slug,
             SortOrder = a.SortOrder,
             IsActive = b.IsActive,
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
         await CategoryService.UpdateAsync(a.Id, aDto);

@@ -19,7 +19,7 @@ public static class PersonMappings
             CityId = dto.CityId,
             Address = dto.Address.Trim(),
             ProfileImagePath = dto.ProfileImagePath.Trim(),
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.Now
         };
 
     public static PersonListItemDto ToListItem(this Person p, string provinceName, string cityName)

@@ -19,6 +19,8 @@ builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
+builder.Services.AddScoped<UnitService>();
+
 
 // ثبت کنترلرها
 builder.Services.AddControllers();
