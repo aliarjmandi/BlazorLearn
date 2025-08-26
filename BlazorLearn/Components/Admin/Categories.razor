@@ -4,12 +4,16 @@
 @using BlazorLearn.Data.DTOs
 @using BlazorLearn.Services.Implementations
 @inject CategoryService CategoryService
+@inject IJSRuntime JS
 @rendermode InteractiveServer
+
 
 <h3>مدیریت دسته‌بندی‌ها</h3>
 
-<div class="mb-3">
-    <button type="button"  class="btn btn-primary btn-sm" @onclick="AddRoot">افزودن دسته ریشه</button>
+<div class="mb-3 d-flex gap-2">
+    <button type="button" class="btn btn-primary btn-sm" @onclick="AddRoot">افزودن دسته ریشه</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">بازکردن همه</button>
+    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">جمع‌کردن همه</button>
 </div>
 
 @if (isLoading)
@@ -22,7 +26,7 @@ else
         @if (rootEditor is not null)
         {
             <div class="card p-2 my-2">
-                <CategoryEditor Dto="rootEditor" OnSave="SaveCreate" OnCancel="@(()=> rootEditor = null)" />
+                <CategoryEditor Dto="rootEditor" OnSave="SaveCreate" OnCancel="@(() => rootEditor = null)" />
             </div>
         }
 
@@ -45,11 +49,17 @@ else
 }
 
 @code {
+
+
+
     private List<CategoryTreeNodeDto> tree = new();
     private bool isLoading = true;
 
-    // ویرایشگر برای افزودن ریشه‌ای
+    // ویرایشگر افزودن ریشه‌ای
     private CategoryWriteDto? rootEditor;
+
+    // نودهای باز (برای Collapse/Expand)
+    private readonly HashSet<Guid> expanded = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -61,6 +71,11 @@ else
         isLoading = true;
         var flat = (await CategoryService.GetAllAsync()).ToList();
         tree = BuildTree(flat, null);
+
+        // پیش‌فرض: فقط ریشه‌ها باز باشند
+        expanded.Clear();
+        foreach (var r in tree) expanded.Add(r.Id);
+
         isLoading = false;
         StateHasChanged();
     }
@@ -122,9 +137,27 @@ else
         return null;
     }
 
+    // ---------- رندر هر نود (با باز/بستن) ----------
     private RenderFragment RenderNode(CategoryTreeNodeDto n) => __builder =>
     {
+        var hasChildren = n.Children?.Any() == true;
+        var isOpen = expanded.Contains(n.Id);
+
         <div class="node d-flex align-items-center gap-2">
+            <button type="button"
+                    class="btn btn-link btn-sm p-0 me-1"
+                    @onclick="() => ToggleNode(n.Id)"
+                    disabled="@(!hasChildren)">
+                @if (hasChildren)
+                {
+                    @:(@(isOpen ? "▼" : "▶"))
+                }
+                else
+                {
+                    <span class="text-muted">•</span>
+                }
+            </button>
+
             @if (editingNode?.Id == n.Id)
             {
                 <CategoryEditor Dto="editingDto!" OnSave="SaveEdit" OnCancel="CancelEdit" />
@@ -135,25 +168,28 @@ else
                 <span class="badge text-bg-light">@n.Slug</span>
                 <span class="text-muted small">[Sort: @n.SortOrder]</span>
                 <span class="form-check form-switch ms-2">
-                    <input class="form-check-input" type="checkbox" checked="@n.IsActive" @onchange="(e)=> ToggleActive(n, e.Value as bool?)" />
+                    <input class="form-check-input" type="checkbox" checked="@n.IsActive" @onchange="(e) => ToggleActive(n, e.Value as bool?)" />
                 </span>
 
-                <button class="btn btn-success btn-sm" @onclick="() => AddChild(n)">زیرشاخه</button>
-                <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(n)">ویرایش</button>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveUp(n)">بالا</button>
-                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveDown(n)">پایین</button>
-                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteNode(n)">حذف</button>
+                <button type="button" class="btn btn-success btn-sm" @onclick="() => AddChild(n)">زیرشاخه</button>
+                <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(n)">ویرایش</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => MoveUp(n)">بالا</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => MoveDown(n)">پایین</button>
+                // <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => ConfirmAndDelete(n)">حذف</button>
+                <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(n)">حذف</button>
+
             }
         </div>
 
         if (pendingChild.TryGetValue(n.Id, out var editor) && editor is not null)
         {
             <div class="card p-2 my-2 ms-3">
-                <CategoryEditor Dto="editor" OnSave="SaveCreate" OnCancel="()=> { pendingChild.Remove(n.Id); }" />
+                <CategoryEditor Dto="editor" OnSave="SaveCreate" OnCancel="() => { pendingChild.Remove(n.Id); }" />
             </div>
         }
 
-        if (n.Children?.Any() == true)
+        // بچه‌ها فقط وقتی نود باز است رندر شوند
+        if (hasChildren && isOpen)
         {
             <ul>
                 @foreach (var c in n.Children.OrderBy(x => x.SortOrder))
@@ -163,6 +199,38 @@ else
             </ul>
         }
     };
+
+    private void ToggleNode(Guid id)
+    {
+        if (!expanded.Add(id))
+            expanded.Remove(id);
+    }
+
+    private void ExpandAll()
+    {
+        expanded.Clear();
+        foreach (var id in EnumerateIds(tree))
+            expanded.Add(id);
+    }
+
+    private void CollapseAll()
+    {
+        // فقط ریشه‌ها باز بمانند
+        expanded.Clear();
+        foreach (var r in tree)
+            expanded.Add(r.Id);
+    }
+
+    private IEnumerable<Guid> EnumerateIds(List<CategoryTreeNodeDto> nodes)
+    {
+        foreach (var n in nodes)
+        {
+            yield return n.Id;
+            if (n.Children?.Any() == true)
+                foreach (var c in EnumerateIds(n.Children))
+                    yield return c;
+        }
+    }
 
     // --- Add child ---
     private readonly Dictionary<Guid, CategoryWriteDto?> pendingChild = new();
@@ -181,6 +249,9 @@ else
                 CreatedAt = DateTime.UtcNow
             };
         }
+
+        // هنگام افزودن زیرشاخه، نود والد را باز نگه‌دار
+        expanded.Add(parent.Id);
     }
 
     // --- Create / Edit ---
@@ -222,14 +293,13 @@ else
         var baseSlug = string.IsNullOrWhiteSpace(dto.Slug) ? SlugUtility.Slugify(dto.Name) : SlugUtility.Slugify(dto.Slug);
         dto.Slug = await CategoryService.EnsureUniqueSlugAsync(baseSlug, ignoreId: null);
 
-        // Slug خودکار در صورت خالی بودن
+        // (اختیاری) fallback
         if (string.IsNullOrWhiteSpace(dto.Slug))
             dto.Slug = Slugify(dto.Name);
 
         await CategoryService.CreateAsync(dto);
         rootEditor = null;
 
-        // اگر child pending بود پاک شود
         if (dto.ParentId is Guid pid && pendingChild.ContainsKey(pid))
             pendingChild.Remove(pid);
 
@@ -251,37 +321,30 @@ else
         await ReloadAsync();
     }
 
-    private CategoryDto ToInsertEntity(CategoryWriteDto dto)
-        => new CategoryDto
-        {
-            Id = Guid.NewGuid(),
-            ParentId = dto.ParentId,
-            Name = dto.Name,
-            Slug = dto.Slug,
-            SortOrder = dto.SortOrder,
-            IsActive = dto.IsActive,
-            CreatedAt = dto.CreatedAt
-        };
-
-    private CategoryDto ToUpdateEntity(Guid id, CategoryWriteDto dto)
-        => new CategoryDto
-        {
-            Id = id,
-            ParentId = dto.ParentId,
-            Name = dto.Name,
-            Slug = dto.Slug,
-            SortOrder = dto.SortOrder,
-            IsActive = dto.IsActive,
-            CreatedAt = dto.CreatedAt // در DB معمولاً تغییر نمی‌دهیم
-        };
-
-    // --- Delete ---
-    private async Task DeleteNode(CategoryTreeNodeDto n)
+    private async Task ConfirmAndDelete(CategoryTreeNodeDto n)
     {
-        // توجه: اگر FK محدود باشد، حذف نود دارای فرزند خطا می‌دهد
+        // اگر فرزند دارد، پیام هشدار قوی‌تر
+        var hasChildren = n.Children?.Any() == true;
+        var message = hasChildren
+            ? "این دسته دارای زیرشاخه است. حذف باعث خطا یا حذف زنجیره‌ای می‌شود. آیا مطمئن هستید؟"
+            : "حذف این دسته قطعی است. آیا مطمئن هستید؟";
+
+        var ok = await JS.InvokeAsync<bool>("confirm", message);
+        if (!ok) return;
+
         await CategoryService.DeleteAsync(n.Id);
         await ReloadAsync();
     }
+
+    
+    // --- Delete ---
+    private async Task DeleteNode(CategoryTreeNodeDto n)
+    {
+        await CategoryService.DeleteAsync(n.Id);
+        await ReloadAsync();
+    }
+
+
 
     // --- Toggle Active ---
     private async Task ToggleActive(CategoryTreeNodeDto n, bool? val)
@@ -326,13 +389,23 @@ else
     {
         var aDto = new CategoryWriteDto
         {
-            Id = a.Id, ParentId = a.ParentId, Name = a.Name, Slug = a.Slug,
-            SortOrder = b.SortOrder, IsActive = a.IsActive, CreatedAt = DateTime.UtcNow
+            Id = a.Id,
+            ParentId = a.ParentId,
+            Name = a.Name,
+            Slug = a.Slug,
+            SortOrder = b.SortOrder,
+            IsActive = a.IsActive,
+            CreatedAt = DateTime.UtcNow
         };
         var bDto = new CategoryWriteDto
         {
-            Id = b.Id, ParentId = b.ParentId, Name = b.Name, Slug = b.Slug,
-            SortOrder = a.SortOrder, IsActive = b.IsActive, CreatedAt = DateTime.UtcNow
+            Id = b.Id,
+            ParentId = b.ParentId,
+            Name = b.Name,
+            Slug = b.Slug,
+            SortOrder = a.SortOrder,
+            IsActive = b.IsActive,
+            CreatedAt = DateTime.UtcNow
         };
 
         await CategoryService.UpdateAsync(a.Id, aDto);
@@ -347,4 +420,77 @@ else
         s = s.Replace(' ', '-').Replace('/', '-').Replace('\\', '-');
         return s.ToLowerInvariant();
     }
+
+    
+
+    private CategoryTreeNodeDto? toDelete;
+    private bool deleteWithChildren = false;
+    private string? deleteWarn;
+
+    private async Task AskDelete(CategoryTreeNodeDto n)
+    {
+        toDelete = n;
+        deleteWithChildren = false;
+        deleteWarn = null;
+        await JS.InvokeVoidAsync("modalHelper.show", "confirmDelete");
+    }
+
+    private async Task ConfirmDelete()
+    {
+        if (toDelete is null) return;
+
+        var hasChildren = toDelete.Children?.Any() == true;
+
+        // اگر فرزند دارد و تیک حذف زنجیره‌ای نزده‌اند، پیام بده و مودال را باز نگه‌دار
+        if (hasChildren && !deleteWithChildren)
+        {
+            deleteWarn = "این دسته دارای زیرشاخه است. برای حذف، گزینهٔ «حذف به‌همراه زیرشاخه‌ها» را فعال کنید.";
+            StateHasChanged();
+            return;
+        }
+
+        if (hasChildren && deleteWithChildren)
+            await CategoryService.DeleteTreeAsync(toDelete.Id);   // 👈 متد جدید
+        else
+            await CategoryService.DeleteAsync(toDelete.Id);
+
+        toDelete = null;
+        deleteWithChildren = false;
+        deleteWarn = null;
+
+        await JS.InvokeVoidAsync("modalHelper.hide", "confirmDelete");
+        await ReloadAsync();
+    }
+
 }
+<ConfirmModal ModalId="confirmDelete"
+              Title="تأیید حذف"
+              ConfirmText="حذف"
+              CancelText="انصراف"
+              OnConfirm="ConfirmDelete">
+    <Message>
+        @if (toDelete is not null)
+        {
+            <p>آیا از حذف «<strong>@toDelete.Name</strong>» مطمئن هستید؟</p>
+
+            @if (toDelete.Children?.Any() == true)
+            {
+                <div class="alert alert-warning py-2">
+                    این دسته دارای زیرشاخه است.
+                </div>
+                <div class="form-check mb-0">
+                    <input id="chkDelChildren" class="form-check-input"
+                           type="checkbox" @bind="deleteWithChildren" />
+                    <label class="form-check-label" for="chkDelChildren">
+                        حذف به‌همراه تمام زیرشاخه‌ها
+                    </label>
+                </div>
+                @if (!string.IsNullOrEmpty(deleteWarn))
+                {
+                    <div class="text-danger small mt-2">@deleteWarn</div>
+                }
+            }
+        }
+    </Message>
+</ConfirmModal>
+

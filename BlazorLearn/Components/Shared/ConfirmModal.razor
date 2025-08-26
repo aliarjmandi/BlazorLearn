@@ -1,0 +1,30 @@
+﻿@using Microsoft.AspNetCore.Components
+
+<div class="modal fade" id="@ModalId" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h6 class="modal-title">@Title</h6>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @Message
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">@CancelText</button>
+                <button type="button" class="btn btn-danger" @onclick="Confirm">@ConfirmText</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public string ModalId { get; set; } = "confirmDelete";
+    [Parameter] public string Title { get; set; } = "تأیید حذف";
+    [Parameter] public RenderFragment? Message { get; set; }
+    [Parameter] public string ConfirmText { get; set; } = "حذف";
+    [Parameter] public string CancelText { get; set; } = "انصراف";
+    [Parameter] public EventCallback OnConfirm { get; set; }
+
+    private async Task Confirm() => await OnConfirm.InvokeAsync();
+}

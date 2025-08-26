@@ -1,7 +1,32 @@
 ﻿@page "/"
+@using BlazorLearn.Components.Shared
+@inject IJSRuntime JS
+@rendermode InteractiveServer
 
 <PageTitle>Home</PageTitle>
 
 <h1>سلام کاربر عزیز</h1>
+<p>به فروشگاه آنلاین ما خوش آمدین</p>
 
-به فروشگاه آنلاین ما خوش آمدین
+<button class="btn btn-danger" @onclick="ShowConfirm">تست حذف</button>
+
+<ConfirmModal ModalId="confirmDeleteTest"
+              Title="تأیید عملیات"
+              ConfirmText="بله"
+              CancelText="انصراف"
+              OnConfirm="ConfirmDelete">
+    <Message>
+        <p>آیا از انجام این عملیات مطمئن هستید؟</p>
+    </Message>
+</ConfirmModal>
+
+@code {
+    private async Task ShowConfirm()
+        => await JS.InvokeVoidAsync("modalHelper.show", "confirmDeleteTest");
+
+    private async Task ConfirmDelete()
+    {
+        await JS.InvokeVoidAsync("modalHelper.hide", "confirmDeleteTest");
+        await JS.InvokeVoidAsync("alert", "عملیات تأیید شد!");
+    }
+}

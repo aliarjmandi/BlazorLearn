@@ -30,5 +30,42 @@ namespace BlazorLearn.Services.Implementations
                 slug = $"{baseSlug}-{i}";
             }
         }
+
+
+
+        /// <summary>
+        /// حذف یک نود و تمامی زیرشاخه‌ها در یک تراکنش
+        /// </summary>
+        public async Task<int> DeleteTreeAsync(Guid id)
+        {
+            await using var conn = GetConnection();   // از Base می‌آید
+            await conn.OpenAsync();                   // 👈 مهم
+
+            await using var tx = await conn.BeginTransactionAsync();
+
+            const string sql = @"
+                                ;WITH cte AS (
+                                    SELECT Id FROM dbo.Categories WHERE Id = @Id
+                                    UNION ALL
+                                    SELECT c.Id
+                                    FROM dbo.Categories c
+                                    INNER JOIN cte p ON c.ParentId = p.Id
+                                )
+                                DELETE FROM dbo.Categories
+                                WHERE Id IN (SELECT Id FROM cte)
+                                OPTION (MAXRECURSION 32767);";
+            try
+            {
+                var rows = await conn.ExecuteAsync(sql, new { Id = id }, tx);
+                await tx.CommitAsync();
+                return rows;
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        }
+
     }
 }
