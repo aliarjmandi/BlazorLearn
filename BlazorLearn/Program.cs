@@ -20,6 +20,7 @@ builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UnitService>();
+builder.Services.AddScoped<ProductService>();
 
 
 // ثبت کنترلرها
@@ -93,7 +94,7 @@ app.UseAuthorization();
 app.MapRazorPages();
 
 // مپ کردن کنترلرها
-app.MapControllers();  
+app.MapControllers();
 
 
 // Blazor Server

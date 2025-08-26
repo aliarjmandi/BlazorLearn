@@ -1,0 +1,344 @@
+﻿@page "/admin/products"
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Components.Shared
+@inject BlazorLearn.Services.Implementations.ProductService ProductService
+@inject BlazorLearn.Services.Implementations.CategoryService CategoryService
+@inject BlazorLearn.Services.Implementations.UnitService UnitService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<h3>مدیریت محصولات</h3>
+
+<EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="row g-3 align-items-end mb-3">
+        <div class="col-md-2">
+            <label class="form-label">SKU</label>
+            <InputText class="form-control" @bind-Value="model.Sku" />
+            <ValidationMessage For="@(() => model.Sku)" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">نام</label>
+            <InputText class="form-control" @bind-Value="model.Name" @oninput="(e) => OnNameChanged()" />
+            <ValidationMessage For="@(() => model.Name)" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Slug</label>
+            <InputText class="form-control" @bind-Value="model.Slug" />
+            <ValidationMessage For="@(() => model.Slug)" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">دسته</label>
+            <InputSelect class="form-select" @bind-Value="model.CategoryId">
+                <option value="">-- انتخاب --</option>
+                @foreach (var c in categories)
+                {
+                    <option value="@c.Id">@c.Name</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => model.CategoryId)" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">واحد</label>
+            <InputSelect class="form-select" @bind-Value="model.UnitId">
+                <option value="">-- انتخاب --</option>
+                @foreach (var u in units)
+                {
+                    <option value="@u.Id">@u.Name</option>
+                }
+            </InputSelect>
+            <ValidationMessage For="@(() => model.UnitId)" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">قیمت</label>
+            <InputNumber class="form-control" @bind-Value="model.Price" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">%تخفیف</label>
+            <InputNumber class="form-control" @bind-Value="model.DiscountPercent" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label">موجودی</label>
+            <InputNumber class="form-control" @bind-Value="model.Stock" />
+        </div>
+
+        <div class="col-md-6">
+            <label class="form-label">خلاصه</label>
+            <InputText class="form-control" @bind-Value="model.ShortDescription" />
+        </div>
+
+        <div class="col-12">
+            <label class="form-label">توضیحات</label>
+            <InputTextArea class="form-control" @bind-Value="model.Description" rows="3" />
+        </div>
+
+        <div class="col-md-2">
+            <label class="form-label d-block">فعال</label>
+            <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
+        </div>
+
+        <div class="col-md-10 d-flex gap-2 justify-content-end">
+            <button type="submit" class="btn btn-primary">@(isEditing ? "به‌روزرسانی" : "ذخیره")</button>
+            @if (isEditing)
+            {
+                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
+            }
+        </div>
+    </div>
+</EditForm>
+
+@if (isLoading)
+{
+    <p>در حال بارگذاری...</p>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table table-sm table-striped table-hover align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>SKU</th>
+                    <th>نام</th>
+                    <th>دسته</th>
+                    <th>واحد</th>
+                    <th>قیمت</th>
+                    <th>%تخفیف</th>
+                    <th>موجودی</th>
+                    <th class="text-center">فعال</th>
+                    <th>ثبت</th>
+                    <th style="width:180px"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in items)
+                {
+                    <tr>
+                        <td>@p.Sku</td>
+                        <td>@p.Name</td>
+                        <td>@p.CategoryName</td>
+                        <td>@p.UnitName</td>
+                        <td>@p.Price.ToString("N0")</td>
+                        <td>@p.DiscountPercent</td>
+                        <td>@p.Stock</td>
+                        <td class="text-center">
+                            <div class="form-check form-switch d-inline-block">
+                                <input type="checkbox" class="form-check-input"
+                                       checked="@p.IsActive"
+                                       @onchange="(e) => ToggleActive(p, e.Value as bool?)" />
+                            </div>
+                        </td>
+                        <td>@p.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                        <td class="text-end">
+                            <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div class="d-flex justify-content-between align-items-center mt-2">
+        <div class="text-muted small">
+            نمایش @(items.Count) ردیف از @totalCount (صفحه @pageNumber از @totalPages)
+        </div>
+        <nav>
+            <ul class="pagination pagination-sm mb-0">
+                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
+                </li>
+                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
+                </li>
+                <li class="page-item disabled"><span class="page-link">@pageNumber / @totalPages</span></li>
+                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
+                </li>
+                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                    <button class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+}
+
+<ConfirmModal ModalId="confirmDeleteProduct"
+              Title="تأیید حذف"
+              ConfirmText="حذف"
+              CancelText="انصراف"
+              OnConfirm="ConfirmDeleteAsync">
+    <Message>
+        @if (toDelete is not null)
+        {
+            <p>حذف محصول «<strong>@toDelete.Name</strong>»؟</p>
+        }
+    </Message>
+</ConfirmModal>
+
+@code {
+    private bool isLoading = true;
+    private bool isEditing = false;
+
+    // صفحه‌بندی
+    private int pageNumber = 1;
+    private int pageSize = 10;
+    private int totalCount = 0;
+    private int totalPages => (int)Math.Ceiling(totalCount / (double)pageSize);
+
+    private List<ProductDto> items = new();
+    private List<CategoryDto> categories = new();
+    private List<UnitDto> units = new();
+
+    private ProductWriteDto model = new()
+    {
+        IsActive = true,
+        CreatedAt = DateTime.Now
+    };
+
+    private EditContext _editContext = default!;
+    private ProductDto? toDelete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        _editContext = new EditContext(model);
+        // منابع انتخابی
+        categories = (await CategoryService.GetAllAsync()).Where(c => c.IsActive).OrderBy(c => c.Name).ToList();
+        units = (await UnitService.GetAllAsync()).Where(u => u.IsActive).OrderBy(u => u.Name).ToList();
+
+        await LoadPageAsync(1);
+    }
+
+    private async Task LoadPageAsync(int page)
+    {
+        isLoading = true;
+        pageNumber = Math.Max(1, page);
+        var result = await ProductService.GetPagedAsync(pageNumber, pageSize);
+        items = result.Items.ToList();
+        totalCount = result.TotalCount;
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task ReloadAsync() => await LoadPageAsync(pageNumber);
+
+    private async Task SaveAsync()
+    {
+        // if (!_editContext.Validate()) return;  // لازم نبود چون OnValidSubmit هست
+        if (!isEditing)
+        {
+            // اگر Slug خالی بود از نام بساز
+            if (string.IsNullOrWhiteSpace(model.Slug))
+                model.Slug = Slugify(model.Name);
+
+            model.CreatedAt = DateTime.Now;
+            await ProductService.CreateAsync(model);
+            await LoadPageAsync(1); // نشان‌دادن رکورد تازه در بالا
+        }
+        else
+        {
+            if (model.Id is null) return;
+            if (string.IsNullOrWhiteSpace(model.Slug))
+                model.Slug = Slugify(model.Name);
+
+            await ProductService.UpdateAsync(model.Id.Value, model);
+            await ReloadAsync();
+        }
+        ResetForm();
+    }
+
+    private void BeginEdit(ProductDto p)
+    {
+        isEditing = true;
+        model = new ProductWriteDto
+        {
+            Id = p.Id,
+            Sku = p.Sku,
+            Name = p.Name,
+            Slug = p.Slug,
+            CategoryId = p.CategoryId,
+            UnitId = p.UnitId,
+            Price = p.Price,
+            DiscountPercent = p.DiscountPercent,
+            Stock = p.Stock,
+            ShortDescription = p.ShortDescription,
+            Description = p.Description,
+            IsActive = p.IsActive,
+            CreatedAt = p.CreatedAt
+        };
+        _editContext = new EditContext(model);
+    }
+
+    private void CancelEdit() => ResetForm();
+
+    private void ResetForm()
+    {
+        isEditing = false;
+        model = new ProductWriteDto
+        {
+            IsActive = true,
+            CreatedAt = DateTime.Now
+        };
+        _editContext = new EditContext(model);
+    }
+
+    private async Task ToggleActive(ProductDto p, bool? val)
+    {
+        if (val is null) return;
+        var dto = new ProductWriteDto
+        {
+            Id = p.Id,
+            Sku = p.Sku,
+            Name = p.Name,
+            Slug = p.Slug,
+            CategoryId = p.CategoryId,
+            UnitId = p.UnitId,
+            Price = p.Price,
+            DiscountPercent = p.DiscountPercent,
+            Stock = p.Stock,
+            ShortDescription = p.ShortDescription,
+            Description = p.Description,
+            IsActive = val.Value,
+            CreatedAt = p.CreatedAt
+        };
+        await ProductService.UpdateAsync(p.Id, dto);
+        await ReloadAsync();
+    }
+
+    private async Task AskDelete(ProductDto p)
+    {
+        toDelete = p;
+        await JS.InvokeVoidAsync("modalHelper.show", "confirmDeleteProduct");
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (toDelete is null) return;
+        await ProductService.DeleteAsync(toDelete.Id);
+        toDelete = null;
+        await JS.InvokeVoidAsync("modalHelper.hide", "confirmDeleteProduct");
+        await ReloadAsync();
+    }
+
+    private static string Slugify(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        var s = input.Trim();
+        s = s.Replace(' ', '-').Replace('/', '-').Replace('\\', '-');
+        return s.ToLowerInvariant();
+    }
+
+    private void OnNameChanged()
+    {
+        if (!isEditing && string.IsNullOrWhiteSpace(model.Slug) && !string.IsNullOrWhiteSpace(model.Name))
+            model.Slug = Slugify(model.Name);
+    }
+}
