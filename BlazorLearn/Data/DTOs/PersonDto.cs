@@ -1,8 +1,26 @@
-﻿using System;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace BlazorLearn.Data.DTOs
 {
+    public class PersonDetailsDto
+    {
+        public Guid Id { get; set; }
+        public string FirstName { get; set; } = "";
+        public string LastName { get; set; } = "";
+        public string Email { get; set; } = "";
+        public string PhoneNumber { get; set; } = "";
+        public DateTime DateOfBirth { get; set; }
+        public string Gender { get; set; } = "";
+        public int ProvinceId { get; set; }
+        public int CityId { get; set; }
+        public string ProvinceName { get; set; } = "";
+        public string CityName { get; set; } = "";
+        public string? Address { get; set; }
+        public string? ProfileImagePath { get; set; }
+        public DateTime CreatedAt { get; set; }
+        public string NationalCode { get; set; } = string.Empty;
+    }
+
     public class PersonWriteDto
     {
         [Required, StringLength(50)]
@@ -46,4 +64,28 @@ namespace BlazorLearn.Data.DTOs
 
         public Guid? UserId { get; set; }   // اختیاری
     }
+
+    public class PersonListItemDto
+    {
+        public Guid Id { get; set; }
+
+        // برای نمایش در جدول
+        public string FirstName { get; set; } = string.Empty;
+        public string LastName { get; set; } = string.Empty;
+        public string Email { get; set; } = string.Empty;
+        public string PhoneNumber { get; set; } = string.Empty;
+        public DateTime DateOfBirth { get; set; }
+
+        public string ProvinceName { get; set; } = string.Empty;
+        public string CityName { get; set; } = string.Empty;
+
+        public string? ProfileImagePath { get; set; }
+        public DateTime CreatedAt { get; set; }
+
+        // اگر جایی خواستی فقط نام کامل را نمایش بدهی
+        public string FullName => $"{FirstName} {LastName}".Trim();
+
+        public string NationalCode { get; set; } = string.Empty;
+    }
+
 }
