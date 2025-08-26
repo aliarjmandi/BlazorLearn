@@ -42,9 +42,8 @@
     <Folder Include="Data\Repositories\" />
     <Folder Include="Infrastructure\" />
     <Folder Include="Migrations\" />
-    <Folder Include="Services\Interfaces\" />
     <Folder Include="wwwroot\css\" />
-    <Folder Include="wwwroot\uploads\" />
+    <Folder Include="wwwroot\uploads\products\" />
   </ItemGroup>
 
 </Project>

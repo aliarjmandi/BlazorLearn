@@ -1,11 +1,14 @@
 ﻿@page "/admin/products"
+@using BlazorLearn.Common
 @using BlazorLearn.Data.DTOs
 @using BlazorLearn.Components.Shared
+@using System.Globalization
 @inject BlazorLearn.Services.Implementations.ProductService ProductService
 @inject BlazorLearn.Services.Implementations.CategoryService CategoryService
 @inject BlazorLearn.Services.Implementations.UnitService UnitService
 @inject IJSRuntime JS
 @rendermode InteractiveServer
+
 
 <h3>مدیریت محصولات</h3>
 
@@ -56,19 +59,31 @@
             <ValidationMessage For="@(() => model.UnitId)" />
         </div>
 
+        <!-- قیمت با جداکننده هزار در حین تایپ -->
         <div class="col-md-2">
-            <label class="form-label">قیمت</label>
-            <InputNumber class="form-control" @bind-Value="model.Price" />
+            <label class="form-label">قیمت (تومان)</label>
+            <InputThousands @bind-Value="priceTemp"
+                            Class="form-control text-start"
+                            Locale="fa-IR"
+                            Format="N0" />
         </div>
 
+        <!-- درصد تخفیف -->
         <div class="col-md-2">
             <label class="form-label">%تخفیف</label>
-            <InputNumber class="form-control" @bind-Value="model.DiscountPercent" />
+            <InputNumber @bind-Value="model.DiscountPercent"
+                         @bind-Value:format="N0"
+                         class="form-control text-start"
+                         inputmode="numeric" />
         </div>
 
+        <!-- موجودی -->
         <div class="col-md-2">
             <label class="form-label">موجودی</label>
-            <InputNumber class="form-control" @bind-Value="model.Stock" />
+            <InputNumber @bind-Value="model.Stock"
+                         @bind-Value:format="N0"
+                         class="form-control text-start"
+                         inputmode="numeric" />
         </div>
 
         <div class="col-md-6">
@@ -127,8 +142,8 @@ else
                         <td>@p.CategoryName</td>
                         <td>@p.UnitName</td>
                         <td>@p.Price.ToString("N0")</td>
-                        <td>@p.DiscountPercent</td>
-                        <td>@p.Stock</td>
+                        <td>@p.DiscountPercent.ToString("N0")</td>
+                        <td>@p.Stock.ToString("N0")</td>
                         <td class="text-center">
                             <div class="form-check form-switch d-inline-block">
                                 <input type="checkbox" class="form-check-input"
@@ -140,6 +155,8 @@ else
                         <td class="text-end">
                             <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
                             <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
+
                         </td>
                     </tr>
                 }
@@ -185,6 +202,12 @@ else
 </ConfirmModal>
 
 @code {
+    // Bridge بین decimal? و decimal
+    private decimal? priceTemp
+    {
+        get => model.Price;              // model.Price از نوع decimal (غیرnullable)
+        set => model.Price = value ?? 0; // اگر پاک شد، 0 بگذار یا مقدار قبلی را نگه دار
+    }
     private bool isLoading = true;
     private bool isEditing = false;
 
@@ -232,28 +255,30 @@ else
 
     private async Task SaveAsync()
     {
-        // if (!_editContext.Validate()) return;  // لازم نبود چون OnValidSubmit هست
+        // 1) ساخت اسلاگ پایه با Utility
+        var baseSlug = string.IsNullOrWhiteSpace(model.Slug)
+            ? SlugUtility.Slugify(model.Name)
+            : SlugUtility.Slugify(model.Slug);
+
+        // 2) یکتا کردن اسلاگ (در ویرایش، آی‌دی فعلی را نادیده بگیر)
+        model.Slug = await ProductService.EnsureUniqueSlugAsync(baseSlug, ignoreId: model.Id);
+
         if (!isEditing)
         {
-            // اگر Slug خالی بود از نام بساز
-            if (string.IsNullOrWhiteSpace(model.Slug))
-                model.Slug = Slugify(model.Name);
-
             model.CreatedAt = DateTime.Now;
             await ProductService.CreateAsync(model);
-            await LoadPageAsync(1); // نشان‌دادن رکورد تازه در بالا
+            await LoadPageAsync(1);  // جدیدترین بالا
         }
         else
         {
             if (model.Id is null) return;
-            if (string.IsNullOrWhiteSpace(model.Slug))
-                model.Slug = Slugify(model.Name);
-
             await ProductService.UpdateAsync(model.Id.Value, model);
             await ReloadAsync();
         }
+
         ResetForm();
     }
+
 
     private void BeginEdit(ProductDto p)
     {
@@ -341,4 +366,30 @@ else
         if (!isEditing && string.IsNullOrWhiteSpace(model.Slug) && !string.IsNullOrWhiteSpace(model.Name))
             model.Slug = Slugify(model.Name);
     }
+
+    private Guid imagesForProductId;
+    private async Task OpenImages(ProductDto p)
+    {
+        imagesForProductId = p.Id;
+        await JS.InvokeVoidAsync("modalHelper.show", "productImagesModal");
+    }
+
 }
+
+<div class="modal fade" id="productImagesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header d-flex justify-content-between align-items-center">
+                <!-- عنوان -->
+                <h5 class="modal-title">مدیریت تصاویر محصول</h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                @if (imagesForProductId != Guid.Empty)
+                {
+                    <ProductImagesManager ProductId="imagesForProductId" />
+                }
+            </div>
+        </div>
+    </div>
+</div>

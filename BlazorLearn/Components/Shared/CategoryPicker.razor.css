@@ -1,0 +1,68 @@
+﻿.category-picker {
+    display: flex;
+    flex-direction: column;
+    gap: .5rem;
+}
+
+.cp-toolbar {
+    display: flex;
+    gap: .5rem;
+    align-items: center;
+}
+
+.cp-search {
+    max-width: 260px;
+}
+
+.cp-tree {
+    overflow: auto;
+    border: 1px solid #e5e7eb;
+    border-radius: .5rem;
+    padding: .5rem;
+    height: var(--cp-height, 55vh);
+}
+
+:root {
+    --cp-height: 55vh;
+}
+
+.cp-ul {
+    list-style: none;
+    padding-inline-start: 1rem;
+    margin: 0;
+}
+
+.cp-node {
+    display: flex;
+    align-items: center;
+    gap: .25rem;
+    padding: .125rem 0;
+}
+
+.cp-caret {
+    cursor: pointer;
+    width: 1.2rem;
+    text-align: center;
+    user-select: none;
+}
+
+.cp-caret-disabled {
+    opacity: .45;
+    cursor: default;
+}
+
+.cp-name {
+    padding: 0 .25rem;
+    text-decoration: none;
+}
+
+.cp-selected {
+    font-weight: 700;
+    text-decoration: underline;
+}
+
+mark {
+    padding: 0 .15rem;
+    background: #fff3cd;
+    border-radius: .2rem;
+}

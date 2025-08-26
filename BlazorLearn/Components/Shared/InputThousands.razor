@@ -1,0 +1,66 @@
+﻿@using System.Globalization
+
+<input @ref="_inputRef"
+       class="@Class"
+       value="@_display"
+       @oninput="OnInput"
+       @onblur="OnBlur"
+       inputmode="numeric" />
+
+@code {
+    [Parameter] public decimal? Value { get; set; }
+    [Parameter] public EventCallback<decimal?> ValueChanged { get; set; }
+    [Parameter] public string Class { get; set; } = "form-control";
+    /// <summary> فرهنگ برای فرمت نمایش (پیش‌فرض: fa-IR) </summary>
+    [Parameter] public string Locale { get; set; } = "fa-IR";
+    /// <summary> قالب عدد: N0=بدون اعشار، N2=دو اعشار، ... </summary>
+    [Parameter] public string Format { get; set; } = "N0";
+
+    private ElementReference _inputRef;
+    private string _display = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        if (Value.HasValue)
+            _display = FormatNumber(Value.Value);
+        else
+            _display = string.Empty;
+    }
+
+    private string FormatNumber(decimal v)
+        => v.ToString(Format, CultureInfo.GetCultureInfo(Locale));
+
+    private async Task OnInput(ChangeEventArgs e)
+    {
+        // فقط رقم‌ها را نگه می‌داریم (۰-۹ انگلیسی/فارسی)
+        var raw = e.Value?.ToString() ?? "";
+        var digits = new string(raw.Where(ch => char.IsDigit(ch)).ToArray());
+
+        if (string.IsNullOrEmpty(digits))
+        {
+            _display = string.Empty;
+            await ValueChanged.InvokeAsync(null);
+            return;
+        }
+
+        // به عدد تبدیل و نمایشی را سه‌رقمی می‌کنیم
+        if (decimal.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num))
+        {
+            _display = FormatNumber(num);
+            // هنگام تایپ مدل را آپدیت نمی‌کنیم (جهت پایداری کاراکتر درج)،
+            // فقط روی blur مقدار نهایی را می‌فرستیم.
+        }
+    }
+
+    private async Task OnBlur()
+    {
+        var digits = new string((_display ?? "").Where(char.IsDigit).ToArray());
+        if (string.IsNullOrEmpty(digits))
+        {
+            await ValueChanged.InvokeAsync(null);
+            return;
+        }
+        if (decimal.TryParse(digits, NumberStyles.Integer, CultureInfo.InvariantCulture, out var num))
+            await ValueChanged.InvokeAsync(num);
+    }
+}

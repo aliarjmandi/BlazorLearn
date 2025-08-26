@@ -1,13 +1,21 @@
 ﻿using BlazorLearn.Components;
-using BlazorLearn.Services.Implementations;
 using BlazorLearn.Components.Account;                // برای IdentitySeed
+using BlazorLearn.Services.Implementations;
+// اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
+using Identity; // (از اسکفولد شما)
 using Microsoft.AspNetCore.Components.Authorization; // برای AuthenticationStateProvider
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-// اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
-using Identity; // (از اسکفولد شما)
+using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
+
+
+
+var fa = CultureInfo.GetCultureInfo("fa-IR");
+CultureInfo.DefaultThreadCurrentCulture = fa;
+CultureInfo.DefaultThreadCurrentUICulture = fa;
+
 
 // DbContext اصلی پروژه (همان که Identity هم روی آن است)
 builder.Services.AddDbContext<BlazorLearnContext>(opt =>
@@ -20,7 +28,14 @@ builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UnitService>();
-builder.Services.AddScoped<ProductService>();
+
+
+builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductImageService>();
+builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductService>(); // 
+
+// File storage for images
+builder.Services.AddScoped<BlazorLearn.Services.Infra.IFileStorage, BlazorLearn.Services.Infra.FileStorage>();
+
 
 
 // ثبت کنترلرها

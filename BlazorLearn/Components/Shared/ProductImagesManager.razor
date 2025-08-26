@@ -1,0 +1,108 @@
+﻿@using BlazorLearn.Data.DTOs
+@inject BlazorLearn.Services.Implementations.ProductImageService ImageService
+@inject BlazorLearn.Services.Infra.IFileStorage Storage
+@inject IJSRuntime JS
+
+<div class="mb-2 d-flex justify-content-between align-items-center">
+    <strong>تصاویر محصول</strong>
+    <InputFile OnChange="OnFilesSelected" multiple accept="image/*" />
+</div>
+
+@if (isLoading)
+{
+    <p class="text-muted">در حال بارگذاری...</p>
+}
+else if (images.Count == 0)
+{
+    <p class="text-muted">هنوز تصویری بارگذاری نشده است.</p>
+}
+else
+{
+    <div class="row g-3">
+        @foreach (var img in images.OrderBy(x => x.SortOrder))
+        {
+            <div class="col-6 col-md-3">
+                <div class="card shadow-sm h-100">
+                    <img class="card-img-top" src="@img.ImageUrl" alt="image" />
+                    <div class="card-body p-2 d-flex gap-2 justify-content-between align-items-center">
+                        <span class="small text-muted">#@img.SortOrder</span>
+                        <div class="btn-group btn-group-sm">
+                            <button class="btn btn-outline-secondary" @onclick="() => MoveUp(img)">بالا</button>
+                            <button class="btn btn-outline-secondary" @onclick="() => MoveDown(img)">پایین</button>
+                            <button class="btn btn-outline-danger" @onclick="() => DeleteAsync(img)">حذف</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+
+    private List<ProductImageDto> images = new();
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+        => await LoadAsync();
+
+    private async Task LoadAsync()
+    {
+        isLoading = true;
+        images = (await ImageService.GetByProductAsync(ProductId)).ToList();
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private int NextOrder() => images.Any() ? images.Max(i => i.SortOrder) + 1 : 0;
+
+    private async Task OnFilesSelected(InputFileChangeEventArgs e)
+    {
+        foreach (var file in e.GetMultipleFiles())
+        {
+            var rel = await Storage.SaveProductImageAsync(ProductId, file);
+            var dto = new ProductImageWriteDto
+            {
+                ProductId = ProductId,
+                ImageUrl = rel,
+                SortOrder = NextOrder(),
+                IsActive = true,
+                CreatedAt = DateTime.Now
+            };
+            await ImageService.CreateAsync(dto);
+        }
+        await LoadAsync();
+    }
+
+    private async Task DeleteAsync(ProductImageDto img)
+    {
+        await ImageService.DeleteAsync(img.Id);
+        await Storage.DeleteAsync(img.ImageUrl);
+        //await ImageService.ReindexAsync(ProductId);
+        await LoadAsync();
+    }
+
+    private async Task MoveUp(ProductImageDto img)
+    {
+        var siblings = images.OrderBy(x => x.SortOrder).ToList();
+        var idx = siblings.FindIndex(x => x.Id == img.Id);
+        if (idx <= 0) return;
+
+        var prev = siblings[idx - 1];
+        await ImageService.SwapOrderAsync(img.Id, img.SortOrder, prev.Id, prev.SortOrder, img.ProductId);
+        await LoadAsync();
+    }
+
+    private async Task MoveDown(ProductImageDto img)
+    {
+        var siblings = images.OrderBy(x => x.SortOrder).ToList();
+        var idx = siblings.FindIndex(x => x.Id == img.Id);
+        if (idx == -1 || idx >= siblings.Count - 1) return;
+
+        var next = siblings[idx + 1];
+        await ImageService.SwapOrderAsync(img.Id, img.SortOrder, next.Id, next.SortOrder, img.ProductId);
+        await LoadAsync();
+    }
+
+}
