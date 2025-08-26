@@ -40,14 +40,15 @@ namespace BlazorLearn.Services.Implementations
         // ---- WRITE ----
         protected override string SqlInsert => @"
             INSERT INTO dbo.Categories
-            (ParentId, Name, Slug, SortOrder, IsActive, CreatedAt)
+            (Id, ParentId, Name, Slug, SortOrder, IsActive, CreatedAt)
             VALUES
-            (@ParentId, @Name, @Slug, @SortOrder, @IsActive, @CreatedAt);
+            (@Id, @ParentId, @Name, @Slug, @SortOrder, @IsActive, @CreatedAt);
         ";
 
         protected override object GetInsertParams(CategoryWriteDto dto)
             => new
             {
+                Id = dto.Id ?? Guid.NewGuid(),  // 👈 مهم
                 dto.ParentId,
                 dto.Name,
                 dto.Slug,

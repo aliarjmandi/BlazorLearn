@@ -39,7 +39,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Components\Shared\" />
     <Folder Include="Data\Repositories\" />
     <Folder Include="Infrastructure\" />
     <Folder Include="Migrations\" />

@@ -1,0 +1,350 @@
+﻿@page "/admin/categories"
+@using BlazorLearn.Common
+@using BlazorLearn.Components.Shared
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Implementations
+@inject CategoryService CategoryService
+@rendermode InteractiveServer
+
+<h3>مدیریت دسته‌بندی‌ها</h3>
+
+<div class="mb-3">
+    <button type="button"  class="btn btn-primary btn-sm" @onclick="AddRoot">افزودن دسته ریشه</button>
+</div>
+
+@if (isLoading)
+{
+    <p>در حال بارگذاری...</p>
+}
+else
+{
+    <div class="tree-container">
+        @if (rootEditor is not null)
+        {
+            <div class="card p-2 my-2">
+                <CategoryEditor Dto="rootEditor" OnSave="SaveCreate" OnCancel="@(()=> rootEditor = null)" />
+            </div>
+        }
+
+        @if (tree.Count == 0)
+        {
+            <p class="text-muted">هیچ دسته‌ای ثبت نشده است.</p>
+        }
+        else
+        {
+            <ul class="tree">
+                @foreach (var n in tree.OrderBy(x => x.SortOrder))
+                {
+                    <li>
+                        @RenderNode(n)
+                    </li>
+                }
+            </ul>
+        }
+    </div>
+}
+
+@code {
+    private List<CategoryTreeNodeDto> tree = new();
+    private bool isLoading = true;
+
+    // ویرایشگر برای افزودن ریشه‌ای
+    private CategoryWriteDto? rootEditor;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await ReloadAsync();
+    }
+
+    private async Task ReloadAsync()
+    {
+        isLoading = true;
+        var flat = (await CategoryService.GetAllAsync()).ToList();
+        tree = BuildTree(flat, null);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private static List<CategoryTreeNodeDto> BuildTree(List<CategoryDto> all, Guid? parentId)
+    {
+        return all.Where(x => x.ParentId == parentId)
+                  .OrderBy(x => x.SortOrder)
+                  .Select(x => new CategoryTreeNodeDto
+                  {
+                      Id = x.Id,
+                      ParentId = x.ParentId,
+                      Name = x.Name,
+                      Slug = x.Slug,
+                      SortOrder = x.SortOrder,
+                      IsActive = x.IsActive,
+                      Children = BuildTree(all, x.Id)
+                  }).ToList();
+    }
+
+    private void AddRoot()
+    {
+        if (rootEditor is null)
+        {
+            rootEditor = new CategoryWriteDto
+            {
+                ParentId = null,
+                Name = "",
+                Slug = "",
+                SortOrder = NextSortOrder(null),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    private int NextSortOrder(Guid? parentId)
+    {
+        var siblings = Enumerate(tree, parentId);
+        return siblings.Any() ? siblings.Max(x => x.SortOrder) + 1 : 0;
+    }
+
+    private static IEnumerable<CategoryTreeNodeDto> Enumerate(List<CategoryTreeNodeDto> all, Guid? parentId)
+    {
+        if (parentId == null)
+            return all;
+        var parent = FindNode(all, parentId.Value);
+        return parent?.Children ?? Enumerable.Empty<CategoryTreeNodeDto>();
+    }
+
+    private static CategoryTreeNodeDto? FindNode(List<CategoryTreeNodeDto> nodes, Guid id)
+    {
+        foreach (var n in nodes)
+        {
+            if (n.Id == id) return n;
+            var f = FindNode(n.Children, id);
+            if (f is not null) return f;
+        }
+        return null;
+    }
+
+    private RenderFragment RenderNode(CategoryTreeNodeDto n) => __builder =>
+    {
+        <div class="node d-flex align-items-center gap-2">
+            @if (editingNode?.Id == n.Id)
+            {
+                <CategoryEditor Dto="editingDto!" OnSave="SaveEdit" OnCancel="CancelEdit" />
+            }
+            else
+            {
+                <span class="fw-semibold">@n.Name</span>
+                <span class="badge text-bg-light">@n.Slug</span>
+                <span class="text-muted small">[Sort: @n.SortOrder]</span>
+                <span class="form-check form-switch ms-2">
+                    <input class="form-check-input" type="checkbox" checked="@n.IsActive" @onchange="(e)=> ToggleActive(n, e.Value as bool?)" />
+                </span>
+
+                <button class="btn btn-success btn-sm" @onclick="() => AddChild(n)">زیرشاخه</button>
+                <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(n)">ویرایش</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveUp(n)">بالا</button>
+                <button class="btn btn-outline-secondary btn-sm" @onclick="() => MoveDown(n)">پایین</button>
+                <button class="btn btn-outline-danger btn-sm" @onclick="() => DeleteNode(n)">حذف</button>
+            }
+        </div>
+
+        if (pendingChild.TryGetValue(n.Id, out var editor) && editor is not null)
+        {
+            <div class="card p-2 my-2 ms-3">
+                <CategoryEditor Dto="editor" OnSave="SaveCreate" OnCancel="()=> { pendingChild.Remove(n.Id); }" />
+            </div>
+        }
+
+        if (n.Children?.Any() == true)
+        {
+            <ul>
+                @foreach (var c in n.Children.OrderBy(x => x.SortOrder))
+                {
+                    <li>@RenderNode(c)</li>
+                }
+            </ul>
+        }
+    };
+
+    // --- Add child ---
+    private readonly Dictionary<Guid, CategoryWriteDto?> pendingChild = new();
+
+    private void AddChild(CategoryTreeNodeDto parent)
+    {
+        if (!pendingChild.ContainsKey(parent.Id))
+        {
+            pendingChild[parent.Id] = new CategoryWriteDto
+            {
+                ParentId = parent.Id,
+                Name = "",
+                Slug = "",
+                SortOrder = NextSortOrder(parent.Id),
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow
+            };
+        }
+    }
+
+    // --- Create / Edit ---
+    private CategoryDto? editingNode;
+    private CategoryWriteDto? editingDto;
+
+    private void BeginEdit(CategoryTreeNodeDto n)
+    {
+        editingNode = new CategoryDto
+        {
+            Id = n.Id,
+            ParentId = n.ParentId,
+            Name = n.Name,
+            Slug = n.Slug,
+            SortOrder = n.SortOrder,
+            IsActive = n.IsActive,
+            CreatedAt = DateTime.UtcNow // این مقدار آپدیت نمی‌شود
+        };
+        editingDto = new CategoryWriteDto
+        {
+            Id = n.Id,
+            ParentId = n.ParentId,
+            Name = n.Name,
+            Slug = n.Slug,
+            SortOrder = n.SortOrder,
+            IsActive = n.IsActive,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+
+    private void CancelEdit()
+    {
+        editingNode = null;
+        editingDto = null;
+    }
+
+    private async Task SaveCreate(CategoryWriteDto dto)
+    {
+        var baseSlug = string.IsNullOrWhiteSpace(dto.Slug) ? SlugUtility.Slugify(dto.Name) : SlugUtility.Slugify(dto.Slug);
+        dto.Slug = await CategoryService.EnsureUniqueSlugAsync(baseSlug, ignoreId: null);
+
+        // Slug خودکار در صورت خالی بودن
+        if (string.IsNullOrWhiteSpace(dto.Slug))
+            dto.Slug = Slugify(dto.Name);
+
+        await CategoryService.CreateAsync(dto);
+        rootEditor = null;
+
+        // اگر child pending بود پاک شود
+        if (dto.ParentId is Guid pid && pendingChild.ContainsKey(pid))
+            pendingChild.Remove(pid);
+
+        await ReloadAsync();
+    }
+
+    private async Task SaveEdit(CategoryWriteDto dto)
+    {
+        if (dto.Id is null) return;
+
+        var baseSlug = string.IsNullOrWhiteSpace(dto.Slug) ? SlugUtility.Slugify(dto.Name) : SlugUtility.Slugify(dto.Slug);
+        dto.Slug = await CategoryService.EnsureUniqueSlugAsync(baseSlug, ignoreId: dto.Id);
+
+        if (string.IsNullOrWhiteSpace(dto.Slug))
+            dto.Slug = Slugify(dto.Name);
+
+        await CategoryService.UpdateAsync(dto.Id.Value, dto);
+        CancelEdit();
+        await ReloadAsync();
+    }
+
+    private CategoryDto ToInsertEntity(CategoryWriteDto dto)
+        => new CategoryDto
+        {
+            Id = Guid.NewGuid(),
+            ParentId = dto.ParentId,
+            Name = dto.Name,
+            Slug = dto.Slug,
+            SortOrder = dto.SortOrder,
+            IsActive = dto.IsActive,
+            CreatedAt = dto.CreatedAt
+        };
+
+    private CategoryDto ToUpdateEntity(Guid id, CategoryWriteDto dto)
+        => new CategoryDto
+        {
+            Id = id,
+            ParentId = dto.ParentId,
+            Name = dto.Name,
+            Slug = dto.Slug,
+            SortOrder = dto.SortOrder,
+            IsActive = dto.IsActive,
+            CreatedAt = dto.CreatedAt // در DB معمولاً تغییر نمی‌دهیم
+        };
+
+    // --- Delete ---
+    private async Task DeleteNode(CategoryTreeNodeDto n)
+    {
+        // توجه: اگر FK محدود باشد، حذف نود دارای فرزند خطا می‌دهد
+        await CategoryService.DeleteAsync(n.Id);
+        await ReloadAsync();
+    }
+
+    // --- Toggle Active ---
+    private async Task ToggleActive(CategoryTreeNodeDto n, bool? val)
+    {
+        if (val is null) return;
+        var dto = new CategoryWriteDto
+        {
+            Id = n.Id,
+            ParentId = n.ParentId,
+            Name = n.Name,
+            Slug = n.Slug,
+            SortOrder = n.SortOrder,
+            IsActive = val.Value,
+            CreatedAt = DateTime.UtcNow
+        };
+        await CategoryService.UpdateAsync(n.Id, dto);
+        await ReloadAsync();
+    }
+
+    // --- Move up/down (بازچینی SortOrder بین خواهر/برادرها) ---
+    private async Task MoveUp(CategoryTreeNodeDto n)
+    {
+        var siblings = Enumerate(tree, n.ParentId).OrderBy(x => x.SortOrder).ToList();
+        var idx = siblings.FindIndex(x => x.Id == n.Id);
+        if (idx <= 0) return;
+
+        var prev = siblings[idx - 1];
+        await SwapSort(n, prev);
+    }
+
+    private async Task MoveDown(CategoryTreeNodeDto n)
+    {
+        var siblings = Enumerate(tree, n.ParentId).OrderBy(x => x.SortOrder).ToList();
+        var idx = siblings.FindIndex(x => x.Id == n.Id);
+        if (idx == -1 || idx >= siblings.Count - 1) return;
+
+        var next = siblings[idx + 1];
+        await SwapSort(n, next);
+    }
+
+    private async Task SwapSort(CategoryTreeNodeDto a, CategoryTreeNodeDto b)
+    {
+        var aDto = new CategoryWriteDto
+        {
+            Id = a.Id, ParentId = a.ParentId, Name = a.Name, Slug = a.Slug,
+            SortOrder = b.SortOrder, IsActive = a.IsActive, CreatedAt = DateTime.UtcNow
+        };
+        var bDto = new CategoryWriteDto
+        {
+            Id = b.Id, ParentId = b.ParentId, Name = b.Name, Slug = b.Slug,
+            SortOrder = a.SortOrder, IsActive = b.IsActive, CreatedAt = DateTime.UtcNow
+        };
+
+        await CategoryService.UpdateAsync(a.Id, aDto);
+        await CategoryService.UpdateAsync(b.Id, bDto);
+        await ReloadAsync();
+    }
+
+    private static string Slugify(string input)
+    {
+        if (string.IsNullOrWhiteSpace(input)) return "";
+        var s = input.Trim();
+        s = s.Replace(' ', '-').Replace('/', '-').Replace('\\', '-');
+        return s.ToLowerInvariant();
+    }
+}

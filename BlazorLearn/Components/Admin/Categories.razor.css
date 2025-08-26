@@ -1,0 +1,4 @@
+﻿.tree { list-style: none; padding-left: 1rem; }
+.tree > li { margin-bottom: .25rem; }
+.tree li ul { list-style: none; padding-left: 1.25rem; margin-top: .25rem; }
+.node { padding: .25rem .5rem; }

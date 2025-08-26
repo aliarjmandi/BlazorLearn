@@ -18,9 +18,12 @@ builder.Services.AddScoped<FileStorageService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
+builder.Services.AddScoped<CategoryService>();
 
 // ثبت کنترلرها
-builder.Services.AddControllers();  
+builder.Services.AddControllers();
+
+builder.Services.AddServerSideBlazor().AddCircuitOptions(o => o.DetailedErrors = true);
 
 
 // Blazor Server
