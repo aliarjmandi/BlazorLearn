@@ -1,237 +1,284 @@
 ﻿@using BlazorLearn.Data.DTOs
-@using BlazorLearn.Services.Implementations
-@inject CategoryService CategoryService
+@inject BlazorLearn.Services.Implementations.CategoryService CategoryService
+@inject IJSRuntime JS
+@rendermode InteractiveServer
 
+<!-- نوار ابزار (جستجو) -->
 <div class="category-picker">
     <div class="cp-toolbar">
-        <input class="form-control form-control-sm cp-search"
-               placeholder="جستجو در دسته‌ها…"
-               @bind="search"
-               @bind:event="oninput" />
-        <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-secondary" @onclick="ExpandAll">بازکردن همه</button>
-            <button class="btn btn-outline-secondary" @onclick="CollapseAll">جمع‌کردن همه</button>
-            <button class="btn btn-outline-secondary" @onclick="ClearSearch" title="پاک‌کردن جستجو">پاک</button>
-        </div>
+        <input class="form-control cp-search"
+               placeholder="جستجو در دسته‌ها..."
+               @bind="search" @bind:event="oninput" />
     </div>
 
     @if (isLoading)
     {
-        <div class="text-muted small">در حال بارگذاری…</div>
+        <div class="text-muted small">در حال بارگذاری...</div>
     }
     else
     {
-        var view = string.IsNullOrWhiteSpace(search)
-        ? tree
-        : FilterTree(tree, search);
-
+        <!-- کانتینر اسکرول‌دار درخت -->
         <div class="cp-tree">
-            @if (view.Count == 0)
-            {
-                <div class="text-muted small">چیزی پیدا نشد.</div>
-            }
-            else
-            {
-                <ul class="cp-ul">
-                    @foreach (var n in view.OrderBy(x => x.SortOrder))
-                    {
-                        <li>@RenderNode(n)</li>
-                    }
-                </ul>
-            }
+            <ul class="cp-ul">
+                @foreach (var n in filteredRoots)
+                {
+                    @RenderNode(n)
+                }
+            </ul>
         </div>
     }
 </div>
 
 @code {
+    // ======= پارامترها/ایونت‌ها =======
+
+    /// <summary>
+    /// آیدی نودی که بیرون کامپوننت انتخاب شده (برای هایلایت/اسکرول روی آن)
+    /// </summary>
     [Parameter] public Guid? SelectedId { get; set; }
-    [Parameter] public EventCallback<Guid?> SelectedIdChanged { get; set; }
+
+    /// <summary>
+    /// وقتی کاربر روی یک نود کلیک کند، به والد اعلام می‌کنیم
+    /// </summary>
     [Parameter] public EventCallback<CategoryTreeNodeDto> OnPicked { get; set; }
-    [Parameter] public string Height { get; set; } = "55vh"; // ارتفاع اسکرول
-    
 
-    private List<CategoryTreeNodeDto> tree = new();
-    private bool isLoading = true;
-    private string search = string.Empty;
-    private HashSet<Guid> expanded = new();
+    // ======= وضعیت داخلی =======
 
+    private List<CategoryTreeNodeDto> tree = new();       // کل درخت
+    private bool isLoading = true;                        // بارگذاری اولیه
+    private Guid? selectedNodeId;                         // نود انتخابی فعلی
+    private HashSet<Guid> expanded = new();               // مجموعه‌ی نودهای بازشده
+    private Dictionary<Guid, Guid?> parentOf = new();     // نقشه‌ی والد برای هر نود
+    private string? search;                               // رشته جستجو
+    private bool _pendingScroll;                          // اسکرول پس از رندر
+
+    /// <summary>
+    /// آی‌دی المنتی که باید به آن اسکرول شود (روی نود انتخابی)
+    /// </summary>
+    private string SelectedElementId => selectedNodeId.HasValue ? "categoryPicker_selected" : "";
+
+    /// <summary>
+    /// ریشه‌های قابل‌نمایش با توجه به فیلتر (search)
+    /// </summary>
+    private IEnumerable<CategoryTreeNodeDto> filteredRoots
+        => tree.Where(n => MatchesOrDescends(search, n))
+               .OrderBy(n => n.SortOrder);
+
+    // ======= چرخه‌ی عمر =======
+
+    /// <summary>
+    /// بارگذاری اولیه‌ی دسته‌بندی‌ها و ساخت درخت و parentMap
+    /// </summary>
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
     }
 
+    /// <summary>
+    /// اگر SelectedId از بیرون عوض شد، مسیر اجداد را باز کن و برای اسکرول علامت بگذار
+    /// </summary>
     protected override async Task OnParametersSetAsync()
     {
-        await base.OnParametersSetAsync();
-
-        // وقتی SelectedId تغییر کرد، نود انتخابی و اجدادش رو Expand کن
         if (SelectedId.HasValue && SelectedId.Value != Guid.Empty)
         {
-            // ExpandPathTo(SelectedId.Value);  // این متد خودت بنویس: از درخت مسیر تا ریشه را پیدا و به expanded اضافه کن
-            // selectedNodeId = SelectedId.Value;
-            StateHasChanged();
+            selectedNodeId = SelectedId;
+            ExpandPathTo(SelectedId.Value);
+            _pendingScroll = true;
         }
+        await base.OnParametersSetAsync();
     }
 
+    /// <summary>
+    /// پس از رندر، اگر لازم بود روی نود انتخابی اسکرول کن
+    /// </summary>
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await Task.Delay(50); // اطمینان از آماده بودن DOM و اسکریپت
+
+        if (_pendingScroll && !string.IsNullOrWhiteSpace(SelectedElementId))
+        {
+            _pendingScroll = false;
+            try { await JS.InvokeVoidAsync("modalHelper.scrollIntoView", SelectedElementId); }
+            catch (JSException) { /* اگر اسکریپت/DOM حاضر نبود؛ مشکلی نیست */ }
+        }
+
+        await base.OnAfterRenderAsync(firstRender);
+    }
+
+    // ======= دیتا/درخت =======
+
+    /// <summary>
+    /// واکشی همه‌ی دسته‌ها، ساخت درخت و parentMap
+    /// </summary>
     private async Task ReloadAsync()
     {
         isLoading = true;
-        var flat = (await CategoryService.GetAllAsync()).Where(c => c.IsActive).ToList();
+
+        var flat = (await CategoryService.GetAllAsync()).ToList();
         tree = BuildTree(flat, null);
 
-        // ریشه‌ها به‌صورت پیش‌فرض باز
-        foreach (var r in tree) expanded.Add(r.Id);
+        parentOf.Clear();
+        BuildParentMap(tree, null);
 
         isLoading = false;
         StateHasChanged();
     }
 
+    /// <summary>
+    /// تبدیل لیست مسطح به درخت با استفاده از ParentId
+    /// </summary>
     private static List<CategoryTreeNodeDto> BuildTree(List<CategoryDto> all, Guid? parentId)
+        => all.Where(x => x.ParentId == parentId)
+              .OrderBy(x => x.SortOrder)
+              .Select(x => new CategoryTreeNodeDto
+              {
+                  Id = x.Id,
+                  ParentId = x.ParentId,
+                  Name = x.Name,
+                  Slug = x.Slug,
+                  SortOrder = x.SortOrder,
+                  IsActive = x.IsActive,
+                  Children = BuildTree(all, x.Id)
+              }).ToList();
+
+    /// <summary>
+    /// ساخت دیکشنری والد برای هر نود (برای expand مسیر اجداد)
+    /// </summary>
+    private void BuildParentMap(IEnumerable<CategoryTreeNodeDto> nodes, Guid? parentId)
     {
-        return all.Where(x => x.ParentId == parentId)
-                  .OrderBy(x => x.SortOrder)
-                  .Select(x => new CategoryTreeNodeDto
-                  {
-                      Id = x.Id,
-                      ParentId = x.ParentId,
-                      Name = x.Name,
-                      Slug = x.Slug,
-                      SortOrder = x.SortOrder,
-                      IsActive = x.IsActive,
-                      Children = BuildTree(all, x.Id)
-                  }).ToList();
+        foreach (var n in nodes)
+        {
+            parentOf[n.Id] = parentId;
+            if (n.Children?.Count > 0)
+                BuildParentMap(n.Children, n.Id);
+        }
     }
 
-    // --- رندر نود ---
-    private RenderFragment RenderNode(CategoryTreeNodeDto n) => builder =>
+    /// <summary>
+    /// باز کردن همه‌ی اجداد یک نود تا ریشه
+    /// </summary>
+    private void ExpandPathTo(Guid id)
     {
-        var seq = 0;
-        var hasChildren = n.Children?.Any() == true;
-        var isOpen = expanded.Contains(n.Id);
+        var cur = id;
+        while (parentOf.TryGetValue(cur, out var p) && p.HasValue)
+        {
+            expanded.Add(p.Value);
+            cur = p.Value;
+        }
+    }
 
-        builder.OpenElement(seq++, "div");
-        builder.AddAttribute(seq++, "class", "cp-node");
+    // ======= فیلتر/جستجو =======
+
+    /// <summary>
+    /// تشخیص انطباق نود با متن جستجو (نام یا اسلاگ)
+    /// </summary>
+    private static bool Matches(string? text, CategoryTreeNodeDto n)
+        => string.IsNullOrWhiteSpace(text)
+           || (n.Name?.Contains(text, StringComparison.CurrentCultureIgnoreCase) ?? false)
+           || (n.Slug?.Contains(text, StringComparison.OrdinalIgnoreCase) ?? false);
+
+    /// <summary>
+    /// نود یا هر کدام از نوادگانش با جستجو منطبق است؟
+    /// </summary>
+    private bool MatchesOrDescends(string? text, CategoryTreeNodeDto n)
+        => Matches(text, n) || (n.Children?.Any(c => MatchesOrDescends(text, c)) ?? false);
+
+    // ======= رندر درخت =======
+
+    /// <summary>
+    /// رندر یک نود درخت به‌صورت بازگشتی (caret، نام، و فرزندان در صورت expand)
+    /// </summary>
+    private RenderFragment RenderNode(CategoryTreeNodeDto n) => __builder =>
+    {
+        if (!MatchesOrDescends(search, n)) return;
+
+        var seq = 0;
+        bool hasChildren = n.Children?.Any() == true;
+        bool isExpanded = expanded.Contains(n.Id);
+        bool isSelected = selectedNodeId == n.Id;
+
+        __builder.OpenElement(seq++, "li");
+        __builder.AddAttribute(seq++, "class", "cp-li");
+        if (isSelected)
+            __builder.AddAttribute(seq++, "id", "categoryPicker_selected");
+
+        __builder.OpenElement(seq++, "div");
+        __builder.AddAttribute(seq++, "class", "cp-node");
 
         // caret
-        builder.OpenElement(seq++, "span");
-        builder.AddAttribute(seq++, "class", $"cp-caret {(hasChildren ? "" : "cp-caret-disabled")}");
         if (hasChildren)
-            builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => Toggle(n.Id)));
-        builder.AddContent(seq++, hasChildren ? (isOpen ? "▼" : "▶") : "•");
-        builder.CloseElement();
-
-        // نام
-        builder.OpenElement(seq++, "button");
-        var cls = "cp-name btn btn-link btn-sm";
-        if (SelectedId == n.Id) cls += " cp-selected";
-        builder.AddAttribute(seq++, "class", cls);
-        builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => Pick(n)));
-        builder.AddContent(seq++, Highlight(n.Name, search));
-        builder.CloseElement();
-
-        builder.CloseElement(); // .cp-node
-
-        // children
-        if (hasChildren && isOpen)
         {
-            builder.OpenElement(seq++, "ul");
-            builder.AddAttribute(seq++, "class", "cp-ul");
-            foreach (var c in n.Children.OrderBy(x => x.SortOrder))
-            {
-                builder.OpenElement(seq++, "li");
-                builder.AddContent(seq++, RenderNode(c));
-                builder.CloseElement();
-            }
-            builder.CloseElement();
+            __builder.OpenElement(seq++, "a");
+            __builder.AddAttribute(seq++, "role", "button");
+            __builder.AddAttribute(seq++, "class", "cp-caret");
+            __builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => Toggle(n.Id)));
+            __builder.AddContent(seq++, isExpanded ? "▼" : "▶");
+            __builder.CloseElement();
         }
+        else
+        {
+            __builder.OpenElement(seq++, "span");
+            __builder.AddAttribute(seq++, "class", "cp-caret cp-caret-disabled");
+            __builder.AddContent(seq++, "•");
+            __builder.CloseElement();
+        }
+
+        // نام نود – بدون اتکای CSS؛ اگر انتخابی است، نشان متنی اضافه می‌کنیم
+        __builder.OpenElement(seq++, "button");
+        __builder.AddAttribute(seq++, "type", "button");
+        __builder.AddAttribute(seq++, "class", "btn btn-link btn-sm text-start px-2 cp-name");
+        __builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => Pick(n)));
+        __builder.AddContent(seq++, n.Name);
+        if (isSelected)
+        {
+            // نشان انتخابی
+            __builder.AddContent(seq++, " (✔)");
+            // اگر علامت دیگری می‌خواهی یکی از این‌ها را جایگزین کن:
+            // __builder.AddContent(seq++, " ⟪⟫");
+            // __builder.AddContent(seq++, " (انتخاب‌شده)");
+        }
+        __builder.CloseElement(); // button
+
+        __builder.CloseElement(); // div.cp-node
+
+        if (hasChildren && isExpanded)
+        {
+            __builder.OpenElement(seq++, "ul");
+            __builder.AddAttribute(seq++, "class", "cp-ul");
+            foreach (var c in n.Children!.OrderBy(x => x.SortOrder))
+                __builder.AddContent(seq++, RenderNode(c));
+            __builder.CloseElement();
+        }
+
+        __builder.CloseElement(); // li
     };
 
+    // ======= تعامل کاربر =======
+
+    /// <summary>
+    /// باز/بسته کردن یک شاخه
+    /// </summary>
     private void Toggle(Guid id)
     {
-        if (expanded.Contains(id)) expanded.Remove(id); else expanded.Add(id);
+        if (!expanded.Remove(id))
+            expanded.Add(id);
+
+        StateHasChanged();
     }
 
-    private void ExpandAll()
-    {
-        void Walk(List<CategoryTreeNodeDto> nodes)
-        {
-            foreach (var n in nodes) { expanded.Add(n.Id); Walk(n.Children); }
-        }
-        Walk(tree);
-    }
-
-    private void CollapseAll()
-    {
-        expanded.Clear();
-        foreach (var r in tree) expanded.Add(r.Id); // ریشه باز بماند
-    }
-
-    private void ClearSearch() => search = string.Empty;
-
-    // --- فیلتر درخت بر اساس جستجو ---
-    private static List<CategoryTreeNodeDto> FilterTree(List<CategoryTreeNodeDto> src, string q)
-    {
-        q = q.Trim();
-        if (string.IsNullOrEmpty(q)) return src;
-
-        bool Match(CategoryTreeNodeDto n)
-            => (n.Name?.Contains(q, StringComparison.CurrentCultureIgnoreCase) ?? false)
-               || (n.Slug?.Contains(q, StringComparison.OrdinalIgnoreCase) ?? false);
-
-        CategoryTreeNodeDto? FilterNode(CategoryTreeNodeDto n)
-        {
-            var children = new List<CategoryTreeNodeDto>();
-            foreach (var c in n.Children)
-            {
-                var fc = FilterNode(c);
-                if (fc != null) children.Add(fc);
-            }
-
-            if (Match(n) || children.Count > 0)
-            {
-                return new CategoryTreeNodeDto
-                {
-                    Id = n.Id,
-                    ParentId = n.ParentId,
-                    Name = n.Name,
-                    Slug = n.Slug,
-                    SortOrder = n.SortOrder,
-                    IsActive = n.IsActive,
-                    Children = children
-                };
-            }
-            return null;
-        }
-
-        var res = new List<CategoryTreeNodeDto>();
-        foreach (var r in src)
-        {
-            var fr = FilterNode(r);
-            if (fr != null) res.Add(fr);
-        }
-        return res;
-    }
-
-    // هایلایت متن جستجو
-    private MarkupString Highlight(string text, string term)
-    {
-        if (string.IsNullOrWhiteSpace(term) || string.IsNullOrWhiteSpace(text))
-            return (MarkupString)text;
-
-        var idx = text.IndexOf(term, StringComparison.CurrentCultureIgnoreCase);
-        if (idx < 0) return (MarkupString)text;
-
-        var before = text.Substring(0, idx);
-        var match = text.Substring(idx, term.Length);
-        var after = text[(idx + term.Length)..];
-        var html = $"{before}<mark>{match}</mark>{after}";
-        return (MarkupString)html;
-    }
-
+    /// <summary>
+    /// انتخاب یک نود: باز کردن مسیر اجداد، اسکرول، و فایر کردن OnPicked
+    /// </summary>
     private async Task Pick(CategoryTreeNodeDto n)
     {
-        SelectedId = n.Id;
-        await SelectedIdChanged.InvokeAsync(n.Id);
-        if (OnPicked.HasDelegate) await OnPicked.InvokeAsync(n);
+        selectedNodeId = n.Id;
+        ExpandPathTo(n.Id);      // اجداد باز بمانند
+        _pendingScroll = true;   // بعد از رندر اسکرول کن
+
+        if (OnPicked.HasDelegate)
+            await OnPicked.InvokeAsync(n);
+
+        StateHasChanged();
     }
 }

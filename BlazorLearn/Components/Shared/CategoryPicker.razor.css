@@ -14,6 +14,12 @@
     max-width: 260px;
 }
 
+/* ارتفاع پیش‌فرض ناحیه‌ی درخت */
+:root {
+    --cp-height: 55vh;
+}
+
+/* کانتینر اسکرول درخت */
 .cp-tree {
     overflow: auto;
     border: 1px solid #e5e7eb;
@@ -22,16 +28,19 @@
     height: var(--cp-height, 55vh);
 }
 
-:root {
-    --cp-height: 55vh;
-}
-
+/* لیست‌ درختی */
 .cp-ul {
     list-style: none;
     padding-inline-start: 1rem;
     margin: 0;
 }
 
+.cp-li {
+    margin: 0;
+    padding: 0;
+}
+
+/* ردیف هر نود */
 .cp-node {
     display: flex;
     align-items: center;
@@ -39,11 +48,13 @@
     padding: .125rem 0;
 }
 
+/* caret باز/بسته */
 .cp-caret {
     cursor: pointer;
     width: 1.2rem;
     text-align: center;
     user-select: none;
+    line-height: 1;
 }
 
 .cp-caret-disabled {
@@ -51,16 +62,34 @@
     cursor: default;
 }
 
+/* نام نود — مثل لینک بدون کادر/بردر */
 .cp-name {
-    padding: 0 .25rem;
+    min-width: 10rem; /* اگر نمی‌خواهی، می‌توانی حذف کنی */
+    color: inherit;
+    background: transparent;
+    border: none;
+    padding: 2px 6px;
+    text-align: start;
     text-decoration: none;
+    border-radius: .375rem;
 }
 
+    /* حالت hover/focus کمی پررنگ‌تر شود */
+    .cp-name:hover,
+    .cp-name:focus {
+        background: #f2f6ff;
+        outline: none;
+    }
+
+/* آیتم انتخابی: آبی و بولد؛ بدون underline */
 .cp-selected {
+    color: #0d6efd; /* text-primary */
     font-weight: 700;
-    text-decoration: underline;
+    text-decoration: none;
+    background: #e7f1ff; /* پس‌زمینه‌ی ملایم */
 }
 
+/* هایلایت جست‌وجو (در صورت استفاده) */
 mark {
     padding: 0 .15rem;
     background: #fff3cd;

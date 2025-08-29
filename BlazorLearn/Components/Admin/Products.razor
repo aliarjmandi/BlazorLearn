@@ -35,18 +35,6 @@
             <ValidationMessage For="@(() => model.Slug)" />
         </div>
 
-@*         <div class="col-md-2">
-            <label class="form-label">دسته</label>
-            <InputSelect class="form-select" @bind-Value="model.CategoryId">
-                <option value="">-- انتخاب --</option>
-                @foreach (var c in categories)
-                {
-                    <option value="@c.Id">@c.Name</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="@(() => model.CategoryId)" />
-        </div> *@
-
         <!-- فیلد دسته + دکمه انتخاب -->
         <div class="col-md-3">
             <label class="form-label">دسته</label>
@@ -55,22 +43,6 @@
                 <button type="button" class="btn btn-outline-secondary" @onclick="ShowCategoryModal">
                     انتخاب…
                 </button>
-            </div>
-        </div>
-
-        <!-- مدال انتخاب دسته -->
-        <div class="modal fade" id="categoryPickerModal" tabindex="-1" aria-hidden="true">
-            <div class="modal-dialog modal-lg modal-dialog-scrollable">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">انتخاب دسته</h5>
-                        <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
-                    </div>
-                    <div class="modal-body">
-                        <CategoryPicker SelectedId="model.CategoryId"
-                                        OnPicked="OnCategoryPicked" />
-                    </div>
-                </div>
             </div>
         </div>
 
@@ -137,6 +109,22 @@
         </div>
     </div>
 </EditForm>
+
+<!-- مدال انتخاب دسته -->
+<div class="modal fade" id="categoryPickerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">انتخاب دسته</h5>
+                <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <CategoryPicker SelectedId="model.CategoryId"
+                                OnPicked="OnCategoryPicked" />
+            </div>
+        </div>
+    </div>
+</div>
 
 <div class="card mb-3">
     <div class="card-body">
@@ -217,9 +205,9 @@ else
                         </td>
                         <td>@p.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
                         <td class="text-end">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
+                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
+                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
 
                         </td>
                     </tr>
@@ -235,17 +223,17 @@ else
         <nav>
             <ul class="pagination pagination-sm mb-0">
                 <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
+                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
                 </li>
                 <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
+                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
                 </li>
                 <li class="page-item disabled"><span class="page-link">@pageNumber / @totalPages</span></li>
                 <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
+                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
                 </li>
                 <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
+                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
                 </li>
             </ul>
         </nav>
