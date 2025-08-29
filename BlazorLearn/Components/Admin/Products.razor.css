@@ -1,27 +1,94 @@
-﻿.product-thumb {
-    width: 48px;
-    height: 48px;
-    object-fit: cover;
-    border-radius: .5rem;
-    border: 1px solid #e9ecef;
-    background: #f8f9fa;
+﻿/* ========= صفحه و کارت‌ها ========= */
+
+/* پس‌زمینه‌ی محتوای اصلی نرم و فاصله منطقی */
+.content {
+    background-color: #f8f9fa;
+    padding: 1rem !important;
 }
 
-    .product-thumb.placeholder {
-        font-weight: 700;
-        color: #6c757d;
+/* کارت‌های فرم و گرید */
+.card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    margin-bottom: 1rem;
+}
+
+/* فاصله‌های فرم کمی جمع‌وجورتر */
+.prod-card .card-body .row.g-3 > [class*="col-"] {
+    margin-bottom: .35rem;
+}
+
+.prod-card .form-label {
+    margin-bottom: .25rem;
+    font-size: .925rem;
+}
+
+/* ورودی‌های عددی/چپ‌چین */
+.prod-card input[type="number"],
+.prod-card .text-start {
+    direction: ltr;
+    font-variant-numeric: tabular-nums;
+}
+
+/* ========= جدول محصولات ========= */
+
+/* نکته مهم: روی خود table هیچ overflow نگذار!
+   برای گردی/برش به wrapperِ بوت‌استرپ می‌دهیم. */
+.prod-card .table-responsive {
+    border-radius: .5rem;
+    overflow: hidden; /* اسکرولِ جدول را به wrapper بسپار */
+}
+
+/* ارتفاع سلول‌ها و چسبندگی عمودی */
+.table-sm > :not(caption) > * > * {
+    padding-top: .35rem;
+    padding-bottom: .35rem;
+}
+
+.table td, .table th {
+    vertical-align: middle;
+}
+
+    /* از کش آمدن بعضی ستون‌ها جلوگیری کن (اعداد/کدها/قیمت‌ها) */
+    .table td:nth-last-child(2),
+    .table td:nth-last-child(3),
+    .table td:nth-last-child(4),
+    .table th:nth-last-child(2),
+    .table th:nth-last-child(3),
+    .table th:nth-last-child(4) {
+        white-space: nowrap;
     }
 
+/* ========= تصویر محصول در گرید ========= */
 
+/* سلول تصویر: عرض ثابت و وسط‌چین */
 .prod-thumb-cell {
-    width: 56px;
+    width: 64px; /* فضای کافی برای 56px تصویر */
+    text-align: center;
+    vertical-align: middle;
 }
 
+/* خود تصویر: فقط یک بار تعریف شود */
 .prod-thumb {
-    width: 40px;
-    height: 40px;
+    width: 56px;
+    height: 56px;
     object-fit: cover;
-    border-radius: .375rem; /* مثل Persons */
+    border-radius: .375rem;
     border: 1px solid #dee2e6;
     background: #f8f9fa;
+}
+
+/* اگر تصویر نداشتیم و متن جایگزین گذاشتیم */
+.product-thumb.placeholder {
+    font-weight: 700;
+    color: #6c757d;
+}
+
+/* در موبایل، ستون دکمه‌ها از راست به چپ با جدول هماهنگ شود */
+@media (max-width: 768px) {
+    .table .text-end {
+        text-align: start !important;
+    }
 }

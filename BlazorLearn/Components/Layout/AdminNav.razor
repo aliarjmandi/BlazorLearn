@@ -1,0 +1,33 @@
+﻿@inject NavigationManager Nav
+
+<nav class="nav flex-column gap-1">
+    <div class="nav-title">مدیریت</div>
+
+    <NavLink href="" class="nav-link" Match="NavLinkMatch.All">
+        <i class="bi bi-speedometer2 me-2"></i> داشبورد
+    </NavLink>
+
+    <NavLink href="/admin/products" class="nav-link">
+        <i class="bi bi-box-seam me-2"></i> محصولات
+    </NavLink>
+
+    <NavLink href="/admin/categories" class="nav-link">
+        <i class="bi bi-diagram-3 me-2"></i> دسته‌بندی
+    </NavLink>
+
+    <NavLink href="/admin/units" class="nav-link">
+        <i class="bi bi-bounding-box-circles me-2"></i> واحدها
+    </NavLink>
+
+    <hr class="nav-hr" />
+
+    <div class="nav-title">سفارش و کاربران</div>
+
+    <NavLink href="/admin/orders" class="nav-link">
+        <i class="bi bi-bag-check me-2"></i> سفارش‌ها
+    </NavLink>
+
+    <NavLink href="/persons" class="nav-link">
+        <i class="bi bi-people me-2"></i> کاربران
+    </NavLink>
+</nav>

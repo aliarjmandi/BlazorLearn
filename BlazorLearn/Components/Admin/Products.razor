@@ -10,20 +10,32 @@
 @rendermode InteractiveServer
 
 
-<h3>مدیریت محصولات</h3>
-
-<EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
-
-    <div class="row g-3 align-items-end mb-3">
-        <div class="col-md-2">
-            <label class="form-label">SKU</label>
-            <InputText class="form-control" @bind-Value="model.Sku" />
-            <ValidationMessage For="@(() => model.Sku)" />
+<div class="card shadow-sm mb-3 prod-card">
+    <div class="card-header d-flex align-items-center justify-content-between">
+        <h2 class="h5 m-0">مدیریت محصولات</h2>
+        <div class="d-flex gap-2">
+            <button type="submit" class="btn btn-primary">@((isEditing ? "به‌روزرسانی" : "ذخیره"))</button>
+            @if (isEditing)
+            {
+                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
+            }
         </div>
+    </div>
 
-@*         <div class="col-md-3">
+    <div class="card-body pb-2">
+
+        <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+
+            <div class="row g-3 align-items-end mb-3">
+                <div class="col-md-2">
+                    <label class="form-label">SKU</label>
+                    <InputText class="form-control" @bind-Value="model.Sku" />
+                    <ValidationMessage For="@(() => model.Sku)" />
+                </div>
+
+                @*         <div class="col-md-3">
             <label class="form-label">نام</label>
             <InputText class="form-control" @bind-Value="model.Name" @oninput="(e) => OnNameChanged()" />
             <ValidationMessage For="@(() => model.Name)" />
@@ -35,109 +47,111 @@
             <ValidationMessage For="@(() => model.Slug)" />
         </div> *@
 
-        <div class="col-md-3">
-            <label class="form-label">نام</label>
-            <InputText class="form-control"
-                       @bind-Value="model.Name"
-                       @oninput="OnNameInput" />
-            <ValidationMessage For="@(() => model.Name)" />
-        </div>
-
-        <div class="col-md-3">
-            <label class="form-label">Slug</label>
-            <InputText class="form-control"
-                       @bind-Value="model.Slug"
-                       @oninput="(_) => userEditedSlug = true" />
-            <ValidationMessage For="@(() => model.Slug)" />
-
-            @* هینت پیشنهاد، فقط وقتی که با مقدار فعلی فرق دارد *@
-            @if (!string.IsNullOrWhiteSpace(slugSuggestion) &&
-                        !string.Equals(slugSuggestion, model.Slug, StringComparison.OrdinalIgnoreCase))
-            {
-                <div class="form-text">
-                    پیشنهاد: <code>@slugSuggestion</code>
-                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
-                            @onclick="() => { model.Slug = slugSuggestion!; userEditedSlug = false; }">
-                        استفاده از پیشنهاد
-                    </button>
+                <div class="col-md-3">
+                    <label class="form-label">نام</label>
+                    <InputText class="form-control"
+                               @bind-Value="model.Name"
+                               @oninput="OnNameInput" />
+                    <ValidationMessage For="@(() => model.Name)" />
                 </div>
-            }
-        </div>
 
-        <!-- فیلد دسته + دکمه انتخاب -->
-        <div class="col-md-3">
-            <label class="form-label">دسته</label>
-            <div class="input-group">
-                <input class="form-control" value="@selectedCategoryName" readonly />
-                <button type="button" class="btn btn-outline-secondary" @onclick="ShowCategoryModal">
-                    انتخاب…
-                </button>
+                <div class="col-md-3">
+                    <label class="form-label">Slug</label>
+                    <InputText class="form-control"
+                               @bind-Value="model.Slug"
+                               @oninput="(_) => userEditedSlug = true" />
+                    <ValidationMessage For="@(() => model.Slug)" />
+
+                    @* هینت پیشنهاد، فقط وقتی که با مقدار فعلی فرق دارد *@
+                    @if (!string.IsNullOrWhiteSpace(slugSuggestion) &&
+                                        !string.Equals(slugSuggestion, model.Slug, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <div class="form-text">
+                            پیشنهاد: <code>@slugSuggestion</code>
+                            <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                                    @onclick="() => { model.Slug = slugSuggestion!; userEditedSlug = false; }">
+                                استفاده از پیشنهاد
+                            </button>
+                        </div>
+                    }
+                </div>
+
+                <!-- فیلد دسته + دکمه انتخاب -->
+                <div class="col-md-3">
+                    <label class="form-label">دسته</label>
+                    <div class="input-group">
+                        <input class="form-control" value="@selectedCategoryName" readonly />
+                        <button type="button" class="btn btn-outline-secondary" @onclick="ShowCategoryModal">
+                            انتخاب…
+                        </button>
+                    </div>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label">واحد</label>
+                    <InputSelect class="form-select" @bind-Value="model.UnitId">
+                        <option value="">-- انتخاب --</option>
+                        @foreach (var u in units)
+                        {
+                            <option value="@u.Id">@u.Name</option>
+                        }
+                    </InputSelect>
+                    <ValidationMessage For="@(() => model.UnitId)" />
+                </div>
+
+                <!-- قیمت با جداکننده هزار در حین تایپ -->
+                <div class="col-md-2">
+                    <label class="form-label">قیمت (تومان)</label>
+                    <InputThousands @bind-Value="priceTemp"
+                                    Class="form-control text-start"
+                                    Locale="fa-IR"
+                                    Format="N0" />
+                </div>
+
+                <!-- درصد تخفیف -->
+                <div class="col-md-2">
+                    <label class="form-label">%تخفیف</label>
+                    <InputNumber @bind-Value="model.DiscountPercent"
+                                 @bind-Value:format="N0"
+                                 class="form-control text-start"
+                                 inputmode="numeric" />
+                </div>
+
+                <!-- موجودی -->
+                <div class="col-md-2">
+                    <label class="form-label">موجودی</label>
+                    <InputNumber @bind-Value="model.Stock"
+                                 @bind-Value:format="N0"
+                                 class="form-control text-start"
+                                 inputmode="numeric" />
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label">خلاصه</label>
+                    <InputText class="form-control" @bind-Value="model.ShortDescription" />
+                </div>
+
+                <div class="col-12">
+                    <label class="form-label">توضیحات</label>
+                    <InputTextArea class="form-control" @bind-Value="model.Description" rows="3" />
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label d-block">فعال</label>
+                    <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
+                </div>
+
+                <div class="col-md-10 d-flex gap-2 justify-content-end">
+                    <button type="submit" class="btn btn-primary">@(isEditing ? "به‌روزرسانی" : "ذخیره")</button>
+                    @if (isEditing)
+                    {
+                        <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
+                    }
+                </div>
             </div>
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label">واحد</label>
-            <InputSelect class="form-select" @bind-Value="model.UnitId">
-                <option value="">-- انتخاب --</option>
-                @foreach (var u in units)
-                {
-                    <option value="@u.Id">@u.Name</option>
-                }
-            </InputSelect>
-            <ValidationMessage For="@(() => model.UnitId)" />
-        </div>
-
-        <!-- قیمت با جداکننده هزار در حین تایپ -->
-        <div class="col-md-2">
-            <label class="form-label">قیمت (تومان)</label>
-            <InputThousands @bind-Value="priceTemp"
-                            Class="form-control text-start"
-                            Locale="fa-IR"
-                            Format="N0" />
-        </div>
-
-        <!-- درصد تخفیف -->
-        <div class="col-md-2">
-            <label class="form-label">%تخفیف</label>
-            <InputNumber @bind-Value="model.DiscountPercent"
-                         @bind-Value:format="N0"
-                         class="form-control text-start"
-                         inputmode="numeric" />
-        </div>
-
-        <!-- موجودی -->
-        <div class="col-md-2">
-            <label class="form-label">موجودی</label>
-            <InputNumber @bind-Value="model.Stock"
-                         @bind-Value:format="N0"
-                         class="form-control text-start"
-                         inputmode="numeric" />
-        </div>
-
-        <div class="col-md-6">
-            <label class="form-label">خلاصه</label>
-            <InputText class="form-control" @bind-Value="model.ShortDescription" />
-        </div>
-
-        <div class="col-12">
-            <label class="form-label">توضیحات</label>
-            <InputTextArea class="form-control" @bind-Value="model.Description" rows="3" />
-        </div>
-
-        <div class="col-md-2">
-            <label class="form-label d-block">فعال</label>
-            <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
-        </div>
-
-        <div class="col-md-10 d-flex gap-2 justify-content-end">
-            <button type="submit" class="btn btn-primary">@(isEditing ? "به‌روزرسانی" : "ذخیره")</button>
-            @if (isEditing)
-            {
-                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
-            }
-        </div>
+        </EditForm>
     </div>
-</EditForm>
+</div>
 
 <!-- مدال انتخاب دسته -->
 <div class="modal fade" id="categoryPickerModal" tabindex="-1" aria-hidden="true">
@@ -155,131 +169,141 @@
     </div>
 </div>
 
-<div class="card mb-3">
-    <div class="card-body">
-        <div class="row g-2 align-items-end">
-            <div class="col-md-3">
-                <label class="form-label">جستجو بر اساس SKU</label>
-                <InputText class="form-control" @bind-Value="filterSku" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">نام کالا</label>
-                <InputText class="form-control" @bind-Value="filterName" />
-            </div>
-            <div class="col-md-3">
-                <label class="form-label">دسته</label>
-                <InputSelect class="form-select" @bind-Value="filterCategoryId">
-                    <option value="">-- همه --</option>
-                    @foreach (var c in categories)
-                    {
-                        <option value="@c.Id">@c.Name</option>
-                    }
-                </InputSelect>
-            </div>
-            <div class="col-md-2">
-                <label class="form-label">وضعیت</label>
-                <InputSelect class="form-select" @bind-Value="filterIsActive">
-                    <option value="">-- همه --</option>
-                    <option value="true">فعال</option>
-                    <option value="false">غیرفعال</option>
-                </InputSelect>
-            </div>
-            <div class="col-md-1 d-grid">
-                <button type="button" class="btn btn-primary" @onclick="() => LoadPageAsync(1)">اعمال</button>
+
+<!-- کارت دوم: فیلترها + جدول -->
+<div class="card shadow-sm">
+    <div class="card-header small text-muted">فیلترها</div>
+    <div class="card-body py-2">
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <div class="row g-2 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">جستجو بر اساس SKU</label>
+                        <InputText class="form-control" @bind-Value="filterSku" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">نام کالا</label>
+                        <InputText class="form-control" @bind-Value="filterName" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">دسته</label>
+                        <InputSelect class="form-select" @bind-Value="filterCategoryId">
+                            <option value="">-- همه --</option>
+                            @foreach (var c in categories)
+                            {
+                                <option value="@c.Id">@c.Name</option>
+                            }
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">وضعیت</label>
+                        <InputSelect class="form-select" @bind-Value="filterIsActive">
+                            <option value="">-- همه --</option>
+                            <option value="true">فعال</option>
+                            <option value="false">غیرفعال</option>
+                        </InputSelect>
+                    </div>
+                    <div class="col-md-1 d-grid">
+                        <button type="button" class="btn btn-primary" @onclick="() => LoadPageAsync(1)">اعمال</button>
+                    </div>
+                </div>
             </div>
         </div>
+
+    </div>
+    <div class="table-responsive">
+
+        @if (isLoading)
+        {
+            <p>در حال بارگذاری...</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center">تصویر</th>
+                            <th>SKU</th>
+                            <th>نام</th>
+                            <th>دسته</th>
+                            <th>واحد</th>
+                            <th>قیمت</th>
+                            <th>%تخفیف</th>
+                            <th>موجودی</th>
+                            <th class="text-center">فعال</th>
+                            <th>ثبت</th>
+                            <th style="width:180px"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in items)
+                        {
+                            <tr>
+                                <!-- ⭐ ستون عکس -->
+                                <td class="text-center prod-thumb-cell">
+                                    <button class="btn btn-link p-0" title="مدیریت تصاویر"
+                                            @onclick="() => OpenImages(p)">
+                                        <img loading="lazy"
+                                             class="prod-thumb"
+                                             alt="@p.Name"
+                                             src="@GetProductThumb(p)" />
+                                    </button>
+                                </td>
+
+                                <td>@p.Sku</td>
+                                <td>@p.Name</td>
+                                <td>@p.CategoryName</td>
+                                <td>@p.UnitName</td>
+                                <td>@p.Price.ToString("N0")</td>
+                                <td>@p.DiscountPercent.ToString("N0")</td>
+                                <td>@p.Stock.ToString("N0")</td>
+                                <td class="text-center">
+                                    <div class="form-check form-switch d-inline-block">
+                                        <input type="checkbox" class="form-check-input"
+                                               checked="@p.IsActive"
+                                               @onchange="(e) => ToggleActive(p, e.Value as bool?)" />
+                                    </div>
+                                </td>
+                                <td>@p.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                <td class="text-end">
+                                    <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
+                                    <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
+                                    <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+
+                </table>
+            </div>
+
+            <div class="d-flex justify-content-between align-items-center mt-2">
+                <div class="text-muted small">
+                    نمایش @(items.Count) ردیف از @totalCount (صفحه @pageNumber از @totalPages)
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
+                        </li>
+                        <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
+                        </li>
+                        <li class="page-item disabled"><span class="page-link">@pageNumber / @totalPages</span></li>
+                        <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
+                        </li>
+                        <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                            <button type="button" class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
     </div>
 </div>
-
-
-@if (isLoading)
-{
-    <p>در حال بارگذاری...</p>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-sm table-striped table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th class="text-center">تصویر</th>
-                    <th>SKU</th>
-                    <th>نام</th>
-                    <th>دسته</th>
-                    <th>واحد</th>
-                    <th>قیمت</th>
-                    <th>%تخفیف</th>
-                    <th>موجودی</th>
-                    <th class="text-center">فعال</th>
-                    <th>ثبت</th>
-                    <th style="width:180px"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var p in items)
-                {
-                    <tr>
-                        <!-- ⭐ ستون عکس -->
-                        <td class="text-center prod-thumb-cell">
-                            <button class="btn btn-link p-0" title="مدیریت تصاویر"
-                                    @onclick="() => OpenImages(p)">
-                                <img loading="lazy" 
-                                     class="prod-thumb"
-                                     alt="@p.Name"
-                                     src="@GetProductThumb(p)" />
-                            </button>
-                        </td>
-
-                        <td>@p.Sku</td>
-                        <td>@p.Name</td>
-                        <td>@p.CategoryName</td>
-                        <td>@p.UnitName</td>
-                        <td>@p.Price.ToString("N0")</td>
-                        <td>@p.DiscountPercent.ToString("N0")</td>
-                        <td>@p.Stock.ToString("N0")</td>
-                        <td class="text-center">
-                            <div class="form-check form-switch d-inline-block">
-                                <input type="checkbox" class="form-check-input"
-                                       checked="@p.IsActive"
-                                       @onchange="(e) => ToggleActive(p, e.Value as bool?)" />
-                            </div>
-                        </td>
-                        <td>@p.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td class="text-end">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
-                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-
-        </table>
-    </div>
-
-    <div class="d-flex justify-content-between align-items-center mt-2">
-        <div class="text-muted small">
-            نمایش @(items.Count) ردیف از @totalCount (صفحه @pageNumber از @totalPages)
-        </div>
-        <nav>
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
-                </li>
-                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
-                </li>
-                <li class="page-item disabled"><span class="page-link">@pageNumber / @totalPages</span></li>
-                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
-                </li>
-                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button type="button" class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
-                </li>
-            </ul>
-        </nav>
-    </div>
-}
 
 <ConfirmModal ModalId="confirmDeleteProduct"
               Title="تأیید حذف"
