@@ -23,7 +23,7 @@
             <ValidationMessage For="@(() => model.Sku)" />
         </div>
 
-        <div class="col-md-3">
+@*         <div class="col-md-3">
             <label class="form-label">نام</label>
             <InputText class="form-control" @bind-Value="model.Name" @oninput="(e) => OnNameChanged()" />
             <ValidationMessage For="@(() => model.Name)" />
@@ -33,6 +33,35 @@
             <label class="form-label">Slug</label>
             <InputText class="form-control" @bind-Value="model.Slug" />
             <ValidationMessage For="@(() => model.Slug)" />
+        </div> *@
+
+        <div class="col-md-3">
+            <label class="form-label">نام</label>
+            <InputText class="form-control"
+                       @bind-Value="model.Name"
+                       @oninput="OnNameInput" />
+            <ValidationMessage For="@(() => model.Name)" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Slug</label>
+            <InputText class="form-control"
+                       @bind-Value="model.Slug"
+                       @oninput="(_) => userEditedSlug = true" />
+            <ValidationMessage For="@(() => model.Slug)" />
+
+            @* هینت پیشنهاد، فقط وقتی که با مقدار فعلی فرق دارد *@
+            @if (!string.IsNullOrWhiteSpace(slugSuggestion) &&
+                        !string.Equals(slugSuggestion, model.Slug, StringComparison.OrdinalIgnoreCase))
+            {
+                <div class="form-text">
+                    پیشنهاد: <code>@slugSuggestion</code>
+                    <button type="button" class="btn btn-sm btn-outline-secondary ms-2"
+                            @onclick="() => { model.Slug = slugSuggestion!; userEditedSlug = false; }">
+                        استفاده از پیشنهاد
+                    </button>
+                </div>
+            }
         </div>
 
         <!-- فیلد دسته + دکمه انتخاب -->
@@ -294,6 +323,13 @@ else
 
     private string selectedCategoryName = "";
 
+    // پیشنهاد اسلاگ + اینکه کاربر اسلاگ را دستی دستکاری کرده یا نه
+    private string? slugSuggestion;
+    private bool userEditedSlug;
+
+    // برای debounce روی تایپ اسم
+    private CancellationTokenSource? _slugCts;
+
     private async Task OnCategoryPicked(CategoryTreeNodeDto node)
     {
         model.CategoryId = node.Id;
@@ -414,6 +450,10 @@ else
         // ست کردن نام برای نمایش در input readonly
         selectedCategoryName = categories.FirstOrDefault(x => x.Id == p.CategoryId)?.Name ?? "";
 
+        // در ویرایش، فقط هینت می‌دهیم (خودکار ننویسد)
+        userEditedSlug = true;     // کاربر می‌تواند تغییر دهد ولی خودکار overwrite نمی‌کنیم
+        slugSuggestion = null;     // در صورت نیاز با تایپ نام، پیشنهاد فقط نمایش داده می‌شود
+
         _editContext = new EditContext(model);
     }
 
@@ -427,8 +467,11 @@ else
             IsActive = true,
             CreatedAt = DateTime.Now
         };
-        selectedCategoryName = "";  // پاک شود
         _editContext = new EditContext(model);
+
+        // ریست مربوط به اسلاگ
+        userEditedSlug = false;
+        slugSuggestion = null;
     }
 
     private async Task ToggleActive(ProductDto p, bool? val)
@@ -489,6 +532,56 @@ else
         imagesForProductId = p.Id;
         await JS.InvokeVoidAsync("modalHelper.show", "productImagesModal");
     }
+
+    private async Task OnNameInput(ChangeEventArgs e)
+    {
+        model.Name = e.Value?.ToString() ?? string.Empty;
+
+        // در حالت ویرایش، دست به اسلاگ نزنیم (فقط پیشنهاد بدهیم)
+        if (isEditing) { await DebouncedSuggestAsync(); return; }
+
+        await DebouncedSuggestAsync();
+    }
+
+    private async Task DebouncedSuggestAsync()
+    {
+        // debounce: هر بار تایپ، قبلی لغو شود
+        _slugCts?.Cancel();
+        var cts = new CancellationTokenSource();
+        _slugCts = cts;
+
+        try
+        {
+            await Task.Delay(400, cts.Token); // ۴۰۰ms توقف
+            if (!cts.IsCancellationRequested)
+                await SuggestSlugAsync();
+        }
+        catch (TaskCanceledException) { /* تایپ ادامه پیدا کرده؛ اشکالی نیست */ }
+    }
+
+    private async Task SuggestSlugAsync()
+    {
+        var name = model.Name?.Trim();
+        if (string.IsNullOrWhiteSpace(name))
+        {
+            slugSuggestion = null;
+            StateHasChanged();
+            return;
+        }
+
+        // اگر کاربر اسلاگ را دستی ویرایش کرده، فقط «پیشنهاد» را به‌روزرسانی کنیم
+        var baseSlug = SlugUtility.Slugify(name);  // همانی که قبلاً داشتی
+        var uniqueSlug = await ProductService.EnsureUniqueSlugAsync(baseSlug, ignoreId: model.Id);
+
+        slugSuggestion = uniqueSlug;
+
+        // اگر کاربر هنوز اسلاگ را دستکاری نکرده، خودِ فیلد را هم پر/به‌روز کنیم (در حالت ایجاد)
+        if (!userEditedSlug && !isEditing)
+            model.Slug = uniqueSlug;
+
+        StateHasChanged();
+    }
+
 
 }
 
