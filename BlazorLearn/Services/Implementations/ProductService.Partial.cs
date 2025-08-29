@@ -47,5 +47,65 @@ namespace BlazorLearn.Services.Implementations
 
             return $"{baseSlug}-{max}";
         }
+
+        public async Task<(IEnumerable<ProductDto> Items, int TotalCount)> GetPagedAsync(
+         int pageNumber, int pageSize,
+         string? sku = null,
+         string? name = null,
+         Guid? categoryId = null,
+         bool? isActive = null)
+        {
+            using var conn = GetConnection();
+
+            var where = new List<string>();
+            var p = new DynamicParameters();
+
+            if (!string.IsNullOrWhiteSpace(sku))
+            {
+                where.Add("p.Sku LIKE @Sku");
+                p.Add("Sku", $"%{sku.Trim()}%");
+            }
+
+            if (!string.IsNullOrWhiteSpace(name))
+            {
+                where.Add("p.Name LIKE @Name");
+                p.Add("Name", $"%{name.Trim()}%");
+            }
+
+            if (categoryId.HasValue && categoryId.Value != Guid.Empty)
+            {
+                where.Add("p.CategoryId = @CategoryId");
+                p.Add("CategoryId", categoryId.Value);
+            }
+
+            if (isActive.HasValue)
+            {
+                where.Add("p.IsActive = @IsActive");
+                p.Add("IsActive", isActive.Value);
+            }
+
+            var whereSql = where.Count > 0 ? "WHERE " + string.Join(" AND ", where) : "";
+
+            var dataSql = $@"
+SELECT * FROM (
+    {SqlSelectAll}
+) AS p
+{whereSql}
+ORDER BY {SqlOrderBy}
+OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
+
+            var countSql = $@"
+SELECT COUNT(1) FROM (
+    {SqlSelectAll}
+) AS p
+{whereSql};";
+
+            p.Add("Offset", (pageNumber - 1) * pageSize);
+            p.Add("PageSize", pageSize);
+
+            var items = await conn.QueryAsync<ProductDto>(dataSql, p);
+            var total = await conn.ExecuteScalarAsync<int>(countSql, p);
+            return (items, total);
+        }
     }
 }

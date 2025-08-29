@@ -35,7 +35,7 @@
             <ValidationMessage For="@(() => model.Slug)" />
         </div>
 
-        <div class="col-md-2">
+@*         <div class="col-md-2">
             <label class="form-label">دسته</label>
             <InputSelect class="form-select" @bind-Value="model.CategoryId">
                 <option value="">-- انتخاب --</option>
@@ -45,6 +45,33 @@
                 }
             </InputSelect>
             <ValidationMessage For="@(() => model.CategoryId)" />
+        </div> *@
+
+        <!-- فیلد دسته + دکمه انتخاب -->
+        <div class="col-md-3">
+            <label class="form-label">دسته</label>
+            <div class="input-group">
+                <input class="form-control" value="@selectedCategoryName" readonly />
+                <button type="button" class="btn btn-outline-secondary" @onclick="ShowCategoryModal">
+                    انتخاب…
+                </button>
+            </div>
+        </div>
+
+        <!-- مدال انتخاب دسته -->
+        <div class="modal fade" id="categoryPickerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">انتخاب دسته</h5>
+                        <button type="button" class="btn-close ms-0 me-auto" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <CategoryPicker SelectedId="model.CategoryId"
+                                        OnPicked="OnCategoryPicked" />
+                    </div>
+                </div>
+            </div>
         </div>
 
         <div class="col-md-2">
@@ -110,6 +137,43 @@
         </div>
     </div>
 </EditForm>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <div class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">جستجو بر اساس SKU</label>
+                <InputText class="form-control" @bind-Value="filterSku" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">نام کالا</label>
+                <InputText class="form-control" @bind-Value="filterName" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">دسته</label>
+                <InputSelect class="form-select" @bind-Value="filterCategoryId">
+                    <option value="">-- همه --</option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Id">@c.Name</option>
+                    }
+                </InputSelect>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">وضعیت</label>
+                <InputSelect class="form-select" @bind-Value="filterIsActive">
+                    <option value="">-- همه --</option>
+                    <option value="true">فعال</option>
+                    <option value="false">غیرفعال</option>
+                </InputSelect>
+            </div>
+            <div class="col-md-1 d-grid">
+                <button type="button" class="btn btn-primary" @onclick="() => LoadPageAsync(1)">اعمال</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 @if (isLoading)
 {
@@ -217,9 +281,31 @@ else
     private int totalCount = 0;
     private int totalPages => (int)Math.Ceiling(totalCount / (double)pageSize);
 
+    //فیلترها
+    private string? filterSku;
+    private string? filterName;
+    private Guid? filterCategoryId;
+    private bool? filterIsActive;
+
     private List<ProductDto> items = new();
     private List<CategoryDto> categories = new();
     private List<UnitDto> units = new();
+
+
+    private string selectedCategoryName = "";
+
+    private async Task OnCategoryPicked(CategoryTreeNodeDto node)
+    {
+        model.CategoryId = node.Id;
+        selectedCategoryName = node.Name;
+        await InvokeAsync(StateHasChanged);
+        await JS.InvokeVoidAsync("modalHelper.hide", "categoryPickerModal");
+    }
+
+    private async Task ShowCategoryModal()
+    {
+        await JS.InvokeVoidAsync("modalHelper.show", "categoryPickerModal");
+    }
 
     private ProductWriteDto model = new()
     {
@@ -237,6 +323,15 @@ else
         categories = (await CategoryService.GetAllAsync()).Where(c => c.IsActive).OrderBy(c => c.Name).ToList();
         units = (await UnitService.GetAllAsync()).Where(u => u.IsActive).OrderBy(u => u.Name).ToList();
 
+
+
+        // اگر در حالت ویرایش هستی نام دسته را برای نمایش بخوان
+        if (model.CategoryId != Guid.Empty)
+        {
+            var all = (await CategoryService.GetAllAsync()).ToList();
+            selectedCategoryName = all.FirstOrDefault(x => x.Id == model.CategoryId)?.Name ?? "";
+        }
+
         await LoadPageAsync(1);
     }
 
@@ -244,7 +339,15 @@ else
     {
         isLoading = true;
         pageNumber = Math.Max(1, page);
-        var result = await ProductService.GetPagedAsync(pageNumber, pageSize);
+
+        var result = await ProductService.GetPagedAsync(
+            pageNumber, pageSize,
+            sku: filterSku,
+            name: filterName,
+            categoryId: (filterCategoryId.HasValue && filterCategoryId.Value != Guid.Empty) ? filterCategoryId : null,
+            isActive: filterIsActive
+        );
+
         items = result.Items.ToList();
         totalCount = result.TotalCount;
         isLoading = false;
@@ -299,6 +402,9 @@ else
             IsActive = p.IsActive,
             CreatedAt = p.CreatedAt
         };
+        // ست کردن نام برای نمایش در input readonly
+        selectedCategoryName = categories.FirstOrDefault(x => x.Id == p.CategoryId)?.Name ?? "";
+
         _editContext = new EditContext(model);
     }
 
@@ -312,6 +418,7 @@ else
             IsActive = true,
             CreatedAt = DateTime.Now
         };
+        selectedCategoryName = "";  // پاک شود
         _editContext = new EditContext(model);
     }
 

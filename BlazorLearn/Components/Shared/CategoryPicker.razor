@@ -48,6 +48,7 @@
     [Parameter] public EventCallback<Guid?> SelectedIdChanged { get; set; }
     [Parameter] public EventCallback<CategoryTreeNodeDto> OnPicked { get; set; }
     [Parameter] public string Height { get; set; } = "55vh"; // ارتفاع اسکرول
+    
 
     private List<CategoryTreeNodeDto> tree = new();
     private bool isLoading = true;
@@ -57,6 +58,19 @@
     protected override async Task OnInitializedAsync()
     {
         await ReloadAsync();
+    }
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await base.OnParametersSetAsync();
+
+        // وقتی SelectedId تغییر کرد، نود انتخابی و اجدادش رو Expand کن
+        if (SelectedId.HasValue && SelectedId.Value != Guid.Empty)
+        {
+            // ExpandPathTo(SelectedId.Value);  // این متد خودت بنویس: از درخت مسیر تا ریشه را پیدا و به expanded اضافه کن
+            // selectedNodeId = SelectedId.Value;
+            StateHasChanged();
+        }
     }
 
     private async Task ReloadAsync()
