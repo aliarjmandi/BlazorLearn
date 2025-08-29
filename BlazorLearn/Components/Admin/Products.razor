@@ -173,6 +173,7 @@ else
         <table class="table table-sm table-striped table-hover align-middle">
             <thead class="table-light">
                 <tr>
+                    <th class="text-center">تصویر</th>
                     <th>SKU</th>
                     <th>نام</th>
                     <th>دسته</th>
@@ -189,6 +190,17 @@ else
                 @foreach (var p in items)
                 {
                     <tr>
+                        <!-- ⭐ ستون عکس -->
+                        <td class="text-center prod-thumb-cell">
+                            <button class="btn btn-link p-0" title="مدیریت تصاویر"
+                                    @onclick="() => OpenImages(p)">
+                                <img loading="lazy" style="width:56px;height:56px;object-fit:cover"
+                                     class="prod-thumb"
+                                     alt="@p.Name"
+                                     src="@GetProductThumb(p)" />
+                            </button>
+                        </td>
+
                         <td>@p.Sku</td>
                         <td>@p.Name</td>
                         <td>@p.CategoryName</td>
@@ -205,14 +217,14 @@ else
                         </td>
                         <td>@p.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
                         <td class="text-end">
-                            <button type="button" class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
-                            <button type="button" class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
-                            <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
-
+                            <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(p)">ویرایش</button>
+                            <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(p)">حذف</button>
+                            <button class="btn btn-outline-secondary btn-sm" @onclick="() => OpenImages(p)">تصاویر</button>
                         </td>
                     </tr>
                 }
             </tbody>
+
         </table>
     </div>
 
@@ -294,6 +306,15 @@ else
     {
         await JS.InvokeVoidAsync("modalHelper.show", "categoryPickerModal");
     }
+
+    private static string GetInitial(string? name)
+    => string.IsNullOrWhiteSpace(name) ? "?" : name.Trim()[0].ToString();
+
+
+    private string GetProductThumb(ProductDto p)
+    => string.IsNullOrWhiteSpace(p.FirstImageUrl)
+        ? "/images/placeholder-product.png"   // یک آیکون پیش‌فرض کوچک (دلخواه)
+        : p.FirstImageUrl;
 
     private ProductWriteDto model = new()
     {

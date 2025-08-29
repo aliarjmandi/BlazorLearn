@@ -10,34 +10,57 @@ namespace BlazorLearn.Services.Implementations
         public ProductService(IConfiguration config) : base(config) { }
 
         // ---- READ (با نام دسته/واحد) ----
+        // ستونی با ساب‌کوئری: اولین تصویر طبق SortOrder و سپس CreatedAt
         protected override string SqlSelectAll => @"
-            SELECT 
-                p.Id, p.Sku, p.Name, p.Slug,
-                p.CategoryId, p.UnitId,
-                p.Price, p.DiscountPercent, p.Stock,
-                p.ShortDescription, p.Description,
-                p.IsActive, p.CreatedAt,
-                c.Name AS CategoryName,
-                u.Name AS UnitName
-            FROM dbo.Products AS p
-            INNER JOIN dbo.Categories AS c ON c.Id = p.CategoryId
-            INNER JOIN dbo.Units      AS u ON u.Id = p.UnitId
+        SELECT
+            p.Id, p.Sku, p.Name, p.Slug, p.CategoryId, p.UnitId,
+            p.Price, p.DiscountPercent, p.Stock,
+            p.ShortDescription, p.Description, p.IsActive, p.CreatedAt,
+            c.Name AS CategoryName,
+            u.Name AS UnitName,
+            fi.ImageUrl AS FirstImageUrl
+        FROM dbo.Products p
+        LEFT JOIN dbo.Categories c ON c.Id = p.CategoryId
+        LEFT JOIN dbo.Units u      ON u.Id = p.UnitId
+        LEFT JOIN (
+            SELECT
+                pi.ProductId,
+                pi.ImageUrl,
+                ROW_NUMBER() OVER (
+                    PARTITION BY pi.ProductId
+                    ORDER BY pi.SortOrder ASC, pi.CreatedAt ASC
+                ) AS rn
+            FROM dbo.ProductImages pi
+            -- WHERE pi.IsActive = 1   -- در صورت نیاز فعال کن
+        ) fi ON fi.ProductId = p.Id AND fi.rn = 1
         ";
 
         protected override string SqlSelectById => @"
-            SELECT 
-                p.Id, p.Sku, p.Name, p.Slug,
-                p.CategoryId, p.UnitId,
-                p.Price, p.DiscountPercent, p.Stock,
-                p.ShortDescription, p.Description,
-                p.IsActive, p.CreatedAt,
-                c.Name AS CategoryName,
-                u.Name AS UnitName
-            FROM dbo.Products AS p
-            INNER JOIN dbo.Categories AS c ON c.Id = p.CategoryId
-            INNER JOIN dbo.Units      AS u ON u.Id = p.UnitId
-            WHERE p.Id = @Id
+        SELECT
+            p.Id, p.Sku, p.Name, p.Slug, p.CategoryId, p.UnitId,
+            p.Price, p.DiscountPercent, p.Stock,
+            p.ShortDescription, p.Description, p.IsActive, p.CreatedAt,
+            c.Name AS CategoryName,
+            u.Name AS UnitName,
+            fi.ImageUrl AS FirstImageUrl
+        FROM dbo.Products p
+        LEFT JOIN dbo.Categories c ON c.Id = p.CategoryId
+        LEFT JOIN dbo.Units u      ON u.Id = p.UnitId
+        LEFT JOIN (
+            SELECT
+                pi.ProductId,
+                pi.ImageUrl,
+                ROW_NUMBER() OVER (
+                    PARTITION BY pi.ProductId
+                    ORDER BY pi.SortOrder ASC, pi.CreatedAt ASC
+                ) AS rn
+            FROM dbo.ProductImages pi
+            -- WHERE pi.IsActive = 1
+        ) fi ON fi.ProductId = p.Id AND fi.rn = 1
+        WHERE p.Id = @Id
         ";
+
+
 
         // جدیدترین بالا
         protected override string SqlOrderBy => "CreatedAt DESC";
