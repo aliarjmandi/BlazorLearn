@@ -1,36 +1,28 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="admin-layout">
+<div class="admin-simple @(collapsed ? "mini" : "")">
     <!-- هدر -->
     <header class="admin-header">
-        <div class="brand">
-            <button class="burger d-lg-none" type="button"
-                    onclick="document.querySelector('.admin-layout').classList.toggle('nav-open')"
-                    aria-label="Toggle navigation">
-                ☰
-            </button>
-            <span class="brand-title">🛒 فروشگاه آنلاین</span>
-        </div>
-        <div class="header-right">
-            <span class="user-chip">
-                <img src="/favicon.png" alt="" />
-                کاربر عزیز
-            </span>
-        </div>
+        <div class="brand">فروشگاه آنلاین</div>
+        <button class="btn-toggle" title="باز/بسته منو" @onclick="Toggle">
+            <i class="bi bi-list"></i>
+        </button>
     </header>
 
     <!-- سایدبار -->
     <aside class="admin-sidebar">
-        <nav>
-            <a href="/" class="nav-item">خانه</a>
-            <a href="/person/new" class="nav-item">شخص جدید</a>
-            <a href="/persons" class="nav-item">لیست نفرات</a>
-            <a href="/Account/Register" class="nav-item">ثبت نام</a>
-            <a href="/Account/Login" class="nav-item">لاگین</a>
-            <a href="/admin/categories" class="nav-item">دسته‌بندی</a>
-            <a href="/admin/units" class="nav-item">واحدها</a>
-            <a href="/admin/products" class="nav-item">محصولات</a>
-        </nav>
+        <div class="sidebar-inner">
+            <AdminNav />
+
+            <!-- پروفایل پایین منو -->
+            <div class="nav-footer">
+                <img class="avatar" src="/images/placeholder-avatar.png" alt="avatar" />
+                <div class="user-box">
+                    <div class="user-name">کاربر عزیز</div>
+                    <a class="logout" href="/Account/Logout">خروج</a>
+                </div>
+            </div>
+        </div>
     </aside>
 
     <!-- محتوا -->
@@ -38,3 +30,8 @@
         @Body
     </main>
 </div>
+
+@code {
+    private bool collapsed = false;
+    private void Toggle() => collapsed = !collapsed;
+}

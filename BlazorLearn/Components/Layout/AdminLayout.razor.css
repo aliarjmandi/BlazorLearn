@@ -1,161 +1,245 @@
-﻿/* رنگ‌های تم */
-:root {
-    --admin-bg: #f6fbfd;
-    --admin-primary: #0ea5a3; /* سبز-آبی */
-    --admin-primary-2: #20b1bf; /* آبی‌تر */
-    --admin-dark: #0f172a;
-    --admin-sidebar-bg: linear-gradient(165deg, #0ea5a3, #20b1bf 60%);
-    --admin-link: #0b7285;
-    --admin-link-hover: #095a67;
+﻿/* شبکه کلی: محتوا + سایدبار راست */
+/* =============== چیدمان ساده ادمین =============== */
+.admin-simple {
+    /* ترتیب ستون‌ها: ابتدا محتوا، بعد سایدبار (یعنی سایدبار سمت راست قرار می‌گیرد) */
+    display: grid;
+    grid-template-columns: 1fr 260px; /* content | sidebar */
+    grid-template-rows: 56px 1fr;
+    grid-template-areas: "header header" "content sidebar";
+    min-height: 100vh;
+    background: #f5f6f8;
+    color: #212529;
 }
 
-/* کانتینر کلی */
-.admin-layout {
-    min-height: 100vh;
-    background: var(--admin-bg);
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    grid-template-rows: 64px 1fr;
-    grid-template-areas:
-        "header header"
-        "sidebar content";
-}
+    .admin-simple.mini {
+        grid-template-columns: 1fr 72px;
+    }
 
 /* هدر */
 .admin-header {
     grid-area: header;
-    background: #fff;
-    border-bottom: 1px solid #e6eef1;
     display: flex;
     align-items: center;
-    justify-content: space-between;
     padding: .5rem 1rem;
-    position: sticky;
-    top: 0;
-    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid #dee2e6;
 }
 
     .admin-header .brand {
-        display: flex;
-        align-items: center;
-        gap: .75rem;
-    }
-
-    .admin-header .brand-title {
         font-weight: 700;
-        color: var(--admin-primary);
     }
 
-    .admin-header .burger {
-        background: transparent;
-        border: 0;
-        font-size: 1.25rem;
-        line-height: 1;
-        cursor: pointer;
-        color: var(--admin-primary);
-        padding: .25rem .5rem;
+    .admin-header .btn-toggle {
+        margin-inline-start: auto;
+        background: #fff;
+        border: 1px solid #ced4da;
         border-radius: .375rem;
+        width: 40px;
+        height: 36px;
+        display: inline-grid;
+        place-items: center;
     }
 
-        .admin-header .burger:hover {
-            background: #eef9fb;
-        }
-
-    .admin-header .user-chip {
-        display: inline-flex;
-        align-items: center;
-        gap: .5rem;
-        background: #f0fbfd;
-        color: var(--admin-link);
-        padding: .35rem .6rem;
-        border-radius: 999px;
-        border: 1px solid #e1f4f7;
-        font-size: .9rem;
-    }
-
-        .admin-header .user-chip img {
-            width: 22px;
-            height: 22px;
-            border-radius: 50%;
-        }
-
-/* سایدبار */
+/* سایدبار راست */
 .admin-sidebar {
     grid-area: sidebar;
-    background: var(--admin-sidebar-bg);
-    color: #fff;
-    padding: .75rem;
+    background: #fff;
+    border-left: 1px solid #e5e7eb; /* چون سمت راست است، خطِ جداکننده سمتِ چپِ سایدبار می‌افتد */
+    padding: .5rem;
     overflow: auto;
-    border-inline-start: 1px solid rgba(255,255,255,.15);
 }
 
-    .admin-sidebar .nav-item {
-        display: block;
-        color: #e7fbff;
-        text-decoration: none;
-        padding: .55rem .75rem;
-        border-radius: .5rem;
-        margin: .15rem 0;
-        transition: background .15s ease, transform .05s ease;
+/* محتویات درون سایدبار: بالایش Nav و پایینش پروفایل */
+.sidebar-inner {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+}
+
+/* ==== ناوبری ==== */
+.nav-group {
+    display: block;
+}
+
+.nav-title {
+    font-size: .75rem;
+    color: #6c757d;
+    margin: .75rem .25rem .25rem;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    text-decoration: none;
+    color: #212529;
+    padding: .5rem .5rem;
+    border-radius: .375rem;
+}
+
+    .nav-link:hover {
+        background: #f1f3f5;
     }
 
-        .admin-sidebar .nav-item:hover {
-            background: rgba(255,255,255,.16);
+    .nav-link.active {
+        background: #e9ecef;
+        font-weight: 700;
+    }
+
+    .nav-link i {
+        font-size: 1.05rem;
+    }
+
+/* ===== پروفایل پایین منو ===== */
+.nav-footer {
+    margin-top: auto; /* چسبیدن به پایین */
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem;
+    border-top: 1px solid #e9ecef;
+}
+
+    .nav-footer .avatar {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 1px solid #dee2e6;
+    }
+
+    .nav-footer .user-box {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .nav-footer .user-name {
+        font-weight: 600;
+        font-size: .95rem;
+    }
+
+    .nav-footer .logout {
+        font-size: .85rem;
+        color: #0d6efd;
+        text-decoration: none;
+    }
+
+        .nav-footer .logout:hover {
+            text-decoration: underline;
         }
 
-        .admin-sidebar .nav-item.active {
-            background: #fff;
-            color: var(--admin-primary);
-        }
+/* حالت mini: فقط آیکون‌ها بمانند */
+.admin-simple.mini .nav-title {
+    display: none;
+}
 
-/* محتوا */
+.admin-simple.mini .nav-link {
+    justify-content: center;
+}
+
+    .admin-simple.mini .nav-link .label {
+        display: none;
+    }
+
+.admin-simple.mini .nav-footer .user-box {
+    display: none;
+}
+
+.admin-simple.mini .nav-footer {
+    justify-content: center;
+}
+
+    .admin-simple.mini .nav-footer .avatar {
+        width: 32px;
+        height: 32px;
+    }
+
+/* بدنه محتوا */
 .admin-content {
     grid-area: content;
-    padding: 1rem;
+    padding: 12px;
 }
 
-/* ریسپانسیو: در موبایل سایدبار جمع می‌شود و با همبرگری باز/بسته می‌گردد */
-@media (max-width: 992px) {
-    .admin-layout {
-        grid-template-columns: 1fr;
-        grid-template-areas:
-            "header"
-            "content";
-    }
-
-    .admin-sidebar {
-        position: fixed;
-        top: 64px;
-        bottom: 0;
-        right: 0; /* RTL */
-        width: 260px;
-        transform: translateX(100%);
-        transition: transform .2s ease;
-        box-shadow: -10px 0 20px rgba(15, 23, 42, .12);
-        z-index: 90;
-    }
-
-    .admin-layout.nav-open .admin-sidebar {
-        transform: translateX(0);
-    }
-
-    .admin-content {
-        padding: .75rem;
-    }
+/* پس‌زمینه‌ی محتوای اصلی نرم و فاصله منطقی */
+.content {
+    background-color: #f8f9fa;
+    padding: 1rem !important;
 }
 
-/* دست‌کاری رنگ لینک‌ها داخل محتوا (فقط ادمین) */
-.admin-content a {
-    color: var(--admin-link);
-}
-
-    .admin-content a:hover {
-        color: var(--admin-link-hover);
-    }
-
-/* ظرافت‌های کوچک */
-.admin-content .card {
+/* کارت‌های فرم و گرید */
+.card {
+    background: #fff;
+    border: 1px solid #dee2e6;
     border-radius: .5rem;
-    border-color: #e6eef1;
-    box-shadow: 0 1px 2px rgba(15,23,42,.04);
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    margin-bottom: 1rem;
 }
+
+/* فاصله‌های فرم کمی جمع‌وجورتر */
+.prod-card .card-body .row.g-3 > [class*="col-"] {
+    margin-bottom: .35rem;
+}
+
+.prod-card .form-label {
+    margin-bottom: .25rem;
+    font-size: .925rem;
+}
+
+/* ورودی‌های عددی/چپ‌چین و فونت عددی هم‌عرض */
+.prod-card input[type="number"],
+.prod-card .text-start {
+    direction: ltr;
+    font-variant-numeric: tabular-nums;
+}
+
+/* جدول داخل کارت: گردی/اسکرول روی wrapper نه خود table */
+.prod-card .table-responsive {
+    border-radius: .5rem;
+    overflow: hidden;
+}
+
+/* ردیف‌های جدول کمی فشرده‌تر */
+.table-sm > :not(caption) > * > * {
+    padding-top: .35rem;
+    padding-bottom: .35rem;
+}
+
+/* چسبندگی عمودی سلول‌ها */
+.table td, .table th {
+    vertical-align: middle;
+}
+
+    /* جلوگیری از شکست بد ستون‌های عددی/کدها (اختیاری) */
+    .table td:nth-last-child(2),
+    .table td:nth-last-child(3),
+    .table td:nth-last-child(4),
+    .table th:nth-last-child(2),
+    .table th:nth-last-child(3),
+    .table th:nth-last-child(4) {
+        white-space: nowrap;
+    }
+
+/* موبایل: راست‌به‌چپ جدول، دکمه‌های عمل هم‌راستا شوند */
+@media (max-width: 768px) {
+    .table .text-end {
+        text-align: start !important;
+    }
+}
+
+/* سلول تصویر: عرض ثابت و وسط‌چین */
+.prod-thumb-cell {
+    width: 64px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* خود تصویر بندانگشتی */
+.prod-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: .375rem;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+}
+

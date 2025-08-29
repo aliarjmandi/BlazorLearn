@@ -94,3 +94,22 @@ h1:focus {
     text-align: left;
 }
 
+/* ===== ساده: چیدمان ادمین ===== */
+.rtl {
+    direction: rtl;
+}
+
+
+
+/* کارت‌ها/جدول‌ها یکدست */
+.card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+}
+
+.table {
+    background: #fff;
+    border-radius: .5rem;
+    overflow: hidden;
+}

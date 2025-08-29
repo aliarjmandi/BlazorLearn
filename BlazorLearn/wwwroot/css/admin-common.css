@@ -1,0 +1,82 @@
+﻿/* پس‌زمینه‌ی محتوای اصلی نرم و فاصله منطقی */
+.content {
+    background-color: #f8f9fa;
+    padding: 1rem !important;
+}
+
+/* کارت‌های فرم و گرید */
+.card {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: .5rem;
+    box-shadow: 0 2px 4px rgba(0,0,0,.05);
+    margin-bottom: 1rem;
+}
+
+/* فاصله‌های فرم کمی جمع‌وجورتر */
+.prod-card .card-body .row.g-3 > [class*="col-"] {
+    margin-bottom: .35rem;
+}
+
+.prod-card .form-label {
+    margin-bottom: .25rem;
+    font-size: .925rem;
+}
+
+/* ورودی‌های عددی/چپ‌چین و فونت عددی هم‌عرض */
+.prod-card input[type="number"],
+.prod-card .text-start {
+    direction: ltr;
+    font-variant-numeric: tabular-nums;
+}
+
+/* جدول داخل کارت: گردی/اسکرول روی wrapper نه خود table */
+.prod-card .table-responsive {
+    border-radius: .5rem;
+    overflow: hidden;
+}
+
+/* ردیف‌های جدول کمی فشرده‌تر */
+.table-sm > :not(caption) > * > * {
+    padding-top: .35rem;
+    padding-bottom: .35rem;
+}
+
+/* چسبندگی عمودی سلول‌ها */
+.table td, .table th {
+    vertical-align: middle;
+}
+
+    /* جلوگیری از شکست بد ستون‌های عددی/کدها (اختیاری) */
+    .table td:nth-last-child(2),
+    .table td:nth-last-child(3),
+    .table td:nth-last-child(4),
+    .table th:nth-last-child(2),
+    .table th:nth-last-child(3),
+    .table th:nth-last-child(4) {
+        white-space: nowrap;
+    }
+
+/* موبایل: راست‌به‌چپ جدول، دکمه‌های عمل هم‌راستا شوند */
+@media (max-width: 768px) {
+    .table .text-end {
+        text-align: start !important;
+    }
+}
+
+/* سلول تصویر: عرض ثابت و وسط‌چین */
+.prod-thumb-cell {
+    width: 64px;
+    text-align: center;
+    vertical-align: middle;
+}
+
+/* خود تصویر بندانگشتی */
+.prod-thumb {
+    width: 56px;
+    height: 56px;
+    object-fit: cover;
+    border-radius: .375rem;
+    border: 1px solid #dee2e6;
+    background: #f8f9fa;
+}

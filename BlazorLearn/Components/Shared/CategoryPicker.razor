@@ -213,7 +213,7 @@
             __builder.AddAttribute(seq++, "role", "button");
             __builder.AddAttribute(seq++, "class", "cp-caret");
             __builder.AddAttribute(seq++, "onclick", EventCallback.Factory.Create(this, () => Toggle(n.Id)));
-            __builder.AddContent(seq++, isExpanded ? "▼" : "▶");
+            __builder.AddContent(seq++, isExpanded ? "▼" : "◄");
             __builder.CloseElement();
         }
         else

@@ -1,33 +1,29 @@
-﻿@inject NavigationManager Nav
+﻿@using Microsoft.AspNetCore.Components.Routing
 
-<nav class="nav flex-column gap-1">
-    <div class="nav-title">مدیریت</div>
-
-    <NavLink href="" class="nav-link" Match="NavLinkMatch.All">
-        <i class="bi bi-speedometer2 me-2"></i> داشبورد
+<nav class="nav-group">
+    <div class="nav-title">اصلی</div>
+    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+        <i class="bi bi-speedometer2"></i> <span class="label">داشبورد</span>
     </NavLink>
 
-    <NavLink href="/admin/products" class="nav-link">
-        <i class="bi bi-box-seam me-2"></i> محصولات
+    <div class="nav-title">کاتالوگ</div>
+    <NavLink class="nav-link" href="/admin/products">
+        <i class="bi bi-box-seam"></i> <span class="label">محصولات</span>
+    </NavLink>
+    <NavLink class="nav-link" href="/admin/categories">
+        <i class="bi bi-diagram-3"></i> <span class="label">دسته‌بندی</span>
+    </NavLink>
+    <NavLink class="nav-link" href="/admin/units">
+        <i class="bi bi-slash-circle"></i> <span class="label">واحدها</span>
     </NavLink>
 
-    <NavLink href="/admin/categories" class="nav-link">
-        <i class="bi bi-diagram-3 me-2"></i> دسته‌بندی
+    <div class="nav-title">سفارشات</div>
+    <NavLink class="nav-link" href="/admin/orders">
+        <i class="bi bi-receipt"></i> <span class="label">سفارش‌ها</span>
     </NavLink>
 
-    <NavLink href="/admin/units" class="nav-link">
-        <i class="bi bi-bounding-box-circles me-2"></i> واحدها
-    </NavLink>
-
-    <hr class="nav-hr" />
-
-    <div class="nav-title">سفارش و کاربران</div>
-
-    <NavLink href="/admin/orders" class="nav-link">
-        <i class="bi bi-bag-check me-2"></i> سفارش‌ها
-    </NavLink>
-
-    <NavLink href="/persons" class="nav-link">
-        <i class="bi bi-people me-2"></i> کاربران
+    <div class="nav-title">کاربران</div>
+    <NavLink class="nav-link" href="/persons">
+        <i class="bi bi-people"></i> <span class="label">کاربران</span>
     </NavLink>
 </nav>

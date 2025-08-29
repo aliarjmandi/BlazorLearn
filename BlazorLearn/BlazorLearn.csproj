@@ -22,6 +22,10 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <Content Remove="Components\Admin\Units - Copy.razor" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<PackageReference Include="Dapper" Version="2.1.66" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.19" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.8" />
@@ -43,7 +47,6 @@
 		<Folder Include="Data\Repositories\" />
 		<Folder Include="Infrastructure\" />
 		<Folder Include="Migrations\" />
-		<Folder Include="wwwroot\css\" />
 		<Folder Include="wwwroot\uploads\products\" />
 	</ItemGroup>
 

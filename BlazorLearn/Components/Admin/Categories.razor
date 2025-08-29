@@ -7,46 +7,58 @@
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
+<div class="vstack gap-3">
 
-<h3>مدیریت دسته‌بندی‌ها</h3>
+    <!-- کارت: مدیریت دسته‌بندی‌ها -->
+    <div class="card">
+        <div class="card-header">مدیریت دسته‌بندی‌ها</div>
+        <div class="card-body">
 
-<div class="mb-3 d-flex gap-2">
-    <button type="button" class="btn btn-primary btn-sm" @onclick="AddRoot">افزودن دسته ریشه</button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">بازکردن همه</button>
-    <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">جمع‌کردن همه</button>
+            <div class="mb-3 d-flex gap-2">
+                <button type="button" class="btn btn-primary btn-sm" @onclick="AddRoot">افزودن دسته ریشه</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="ExpandAll">بازکردن همه</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" @onclick="CollapseAll">جمع‌کردن همه</button>
+            </div>
+
+            @if (isLoading)
+            {
+                <p class="text-muted">در حال بارگذاری...</p>
+            }
+            else
+            {
+                <div class="tree-container">
+                    @if (rootEditor is not null)
+                    {
+                        <div class="card p-2 my-2">
+                            <CategoryEditor Dto="rootEditor"
+                                            OnSave="SaveCreate"
+                                            OnCancel="@(() => rootEditor = null)" />
+                        </div>
+                    }
+
+                    @if (tree.Count == 0)
+                    {
+                        <p class="text-muted">هیچ دسته‌ای ثبت نشده است.</p>
+                    }
+                    else
+                    {
+                        <ul class="tree">
+                            @foreach (var n in tree.OrderBy(x => x.SortOrder))
+                            {
+                                <li>
+                                    @RenderNode(n)
+                                </li>
+                            }
+                        </ul>
+                    }
+                </div>
+            }
+
+        </div>
+    </div>
+
 </div>
 
-@if (isLoading)
-{
-    <p>در حال بارگذاری...</p>
-}
-else
-{
-    <div class="tree-container">
-        @if (rootEditor is not null)
-        {
-            <div class="card p-2 my-2">
-                <CategoryEditor Dto="rootEditor" OnSave="SaveCreate" OnCancel="@(() => rootEditor = null)" />
-            </div>
-        }
-
-        @if (tree.Count == 0)
-        {
-            <p class="text-muted">هیچ دسته‌ای ثبت نشده است.</p>
-        }
-        else
-        {
-            <ul class="tree">
-                @foreach (var n in tree.OrderBy(x => x.SortOrder))
-                {
-                    <li>
-                        @RenderNode(n)
-                    </li>
-                }
-            </ul>
-        }
-    </div>
-}
 
 @code {
 
@@ -150,7 +162,7 @@ else
                     disabled="@(!hasChildren)">
                 @if (hasChildren)
                 {
-                    @:(@(isOpen ? "▼" : "▶"))
+                    @:(@(isOpen ? "▼" : "◄"))
                 }
                 else
                 {

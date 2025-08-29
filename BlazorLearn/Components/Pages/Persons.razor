@@ -7,132 +7,139 @@
 @inject NavigationManager Nav
 @inject IJSRuntime JS
 @inject AuthenticationStateProvider AuthStateProvider
+@attribute [Layout(typeof(BlazorLearn.Components.Layout.AdminLayout))]
 
-<h3 class="mb-3">لیست اشخاص</h3>
 
-<div class="d-flex gap-2 align-items-center mb-3">
-    
-    @if (isAdmin)
-    {
-    <a class="btn btn-success" href="/person/new">+ افزودن شخص</a>
-    }
+<div class="vstack gap-3">
 
-    <div class="ms-auto d-flex align-items-center gap-2">
-        <label class="form-label m-0">تعداد در صفحه:</label>
-        <select class="form-select form-select-sm" style="width: 90px"
-                @bind="pageSize"
-                @bind:event="onchange"
-                @bind:after="@(async () => await GoToPageAsync(1))">
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-        </select>
+    <!-- کارت: لیست اشخاص -->
+    <div class="card">
+        <div class="card-header d-flex align-items-center gap-2">
+            <div class="fw-semibold">لیست اشخاص</div>
+
+            <div class="ms-auto d-flex align-items-center gap-2">
+                <a class="btn btn-success btn-sm" href="/person/new">+ افزودن شخص</a>
+
+                <label class="form-label m-0">تعداد در صفحه:</label>
+                <select class="form-select form-select-sm" style="width: 90px"
+                        @bind="pageSize"
+                        @bind:event="onchange"
+                        @bind:after="@(async () => await GoToPageAsync(1))">
+                    <option value="5">5</option>
+                    <option value="10">10</option>
+                    <option value="20">20</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="card-body">
+
+            @if (!string.IsNullOrEmpty(error))
+            {
+                <div class="alert alert-danger mb-3">@error</div>
+            }
+            else if (isLoading)
+            {
+                <div class="alert alert-info mb-3">در حال بارگذاری...</div>
+            }
+            else if (items.Count == 0)
+            {
+                <div class="alert alert-warning mb-3">داده‌ای یافت نشد.</div>
+            }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th style="width:56px">#</th>
+                                <th>کد ملی</th>
+                                <th>نام</th>
+                                <th>نام خانوادگی</th>
+                                <th>ایمیل</th>
+                                <th>تلفن</th>
+                                <th>استان/شهر</th>
+                                <th>تاریخ تولد</th>
+                                <th>تصویر</th>
+                                <th style="width:220px">عملیات</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in items.Select((p, i) => new { p, i }))
+                            {
+                                var index = (currentPage - 1) * pageSize + row.i + 1;
+                                <tr>
+                                    <td>@index</td>
+                                    <td>@row.p.NationalCode</td>
+                                    <td>@row.p.FirstName</td>
+                                    <td>@row.p.LastName</td>
+                                    <td class="ltr">@row.p.Email</td>
+                                    <td class="ltr">@row.p.PhoneNumber</td>
+                                    <td>@row.p.ProvinceName / @row.p.CityName</td>
+                                    <td>@row.p.DateOfBirth.ToString("yyyy-MM-dd")</td>
+                                    <td>
+                                        @if (!string.IsNullOrWhiteSpace(row.p.ProfileImagePath))
+                                        {
+                                            <img src="@row.p.ProfileImagePath"
+                                                 class="rounded"
+                                                 style="width:42px;height:42px;object-fit:cover;" />
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">—</span>
+                                        }
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary"
+                                                    @onclick="() => GoDetails(row.p.Id)">
+                                                جزئیات
+                                            </button>
+                                            <button class="btn btn-sm btn-primary"
+                                                    @onclick="() => GoEdit(row.p.Id)">
+                                                ویرایش
+                                            </button>
+                                            <button class="btn btn-sm btn-danger"
+                                                    @onclick="() => DeleteAsync(row.p.Id)">
+                                                حذف
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- صفحه‌بندی -->
+                <nav aria-label="pagination" class="mt-3">
+                    <ul class="pagination">
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="@(async () => await GoToPageAsync(1))">&laquo;</button>
+                        </li>
+                        <li class="page-item @(currentPage == 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage - 1))">قبلی</button>
+                        </li>
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                صفحه @currentPage از @totalPages
+                                <span class="ms-2 text-muted">(کل: @totalCount)</span>
+                            </span>
+                        </li>
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage + 1))">بعدی</button>
+                        </li>
+                        <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="@(async () => await GoToPageAsync(totalPages))">&raquo;</button>
+                        </li>
+                    </ul>
+                </nav>
+            }
+        </div>
     </div>
+
 </div>
 
-@if (!string.IsNullOrEmpty(error))
-{
-    <div class="alert alert-danger">@error</div>
-}
-else if (isLoading)
-{
-    <div class="alert alert-info">در حال بارگذاری...</div>
-}
-else if (items.Count == 0)
-{
-    <div class="alert alert-warning">داده‌ای یافت نشد.</div>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-striped table-hover align-middle">
-            <thead>
-                <tr>
-                    <th style="width:56px">#</th>
-                    <th>کد ملی</th>
-                    <th>نام</th>
-                    <th>نام خانوادگی</th>
-                    <th>ایمیل</th>
-                    <th>تلفن</th>
-                    <th>استان/شهر</th>
-                    <th>تاریخ تولد</th>
-                    <th>تصویر</th>
-                    <th style="width:220px">عملیات</th>
-                </tr>
-            </thead>
-            <tbody>
-                @* این دستور در واقع یه ترفند لیکن برای گرفتن هم شیء و هم ایندکس در حلقه است. *@
-                @* این روش برای وقتی خوبه که علاوه بر داده، به شماره ردیف هم نیاز داشته باشی (مثلاً برای نمایش ستون شماره در جدول). *@
-                @* "LINQ projection with index" یا "Anonymous type projection with index" *@
-
-                @foreach (var row in items.Select((p, i) => new { p, i }))
-                {
-                    var index = (currentPage - 1) * pageSize + row.i + 1;
-                    <tr>
-                        <td>@index</td>
-                        <td>@row.p.NationalCode</td>
-                        <td>@row.p.FirstName</td>
-                        <td>@row.p.LastName</td>
-                        <td class="ltr">@row.p.Email</td>
-                        <td class="ltr">@row.p.PhoneNumber</td>
-                        <td>@row.p.ProvinceName / @row.p.CityName</td>
-                        <td>@row.p.DateOfBirth.ToString("yyyy-MM-dd")</td>
-                        <td>
-                            @if (!string.IsNullOrWhiteSpace(row.p.ProfileImagePath))
-                            {
-                                <img src="@row.p.ProfileImagePath" class="rounded" style="width:42px;height:42px;object-fit:cover;" />
-                            }
-                            else
-                            {
-                                <span class="text-muted">—</span>
-                            }
-                        </td>
-                        <td>
-                            <div class="btn-group" role="group">
-                                <button class="btn btn-sm btn-outline-primary"
-                                        @onclick="() => GoDetails(row.p.Id)">
-                                    جزئیات
-                                </button>
-                                <button class="btn btn-sm btn-primary"
-                                        @onclick="() => GoEdit(row.p.Id)">
-                                    ویرایش
-                                </button>
-                                <button class="btn btn-sm btn-danger"
-                                        @onclick="() => DeleteAsync(row.p.Id)">
-                                    حذف
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Pagination -->
-    <nav aria-label="pagination">
-        <ul class="pagination">
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(1))">&laquo;</button>
-            </li>
-            <li class="page-item @(currentPage == 1 ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage - 1))">قبلی</button>
-            </li>
-            <li class="page-item disabled">
-                <span class="page-link">
-                    صفحه @currentPage از @totalPages
-                    <span class="ms-2 text-muted">(کل: @totalCount)</span>
-                </span>
-            </li>
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(currentPage + 1))">بعدی</button>
-            </li>
-            <li class="page-item @(currentPage == totalPages ? "disabled" : "")">
-                <button class="page-link" @onclick="@(async () => await GoToPageAsync(totalPages))">&raquo;</button>
-            </li>
-        </ul>
-    </nav>
-}
 
 @code {
     private List<PersonListItemDto> items = new();

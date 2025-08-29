@@ -5,105 +5,127 @@
 @inject IJSRuntime JS
 @rendermode InteractiveServer
 
-<h3>معرفی واحد کالا</h3>
 
-<EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
-    <DataAnnotationsValidator />
-    <ValidationSummary />
+<div class="vstack gap-3">
 
-    <div class="row g-3 align-items-end mb-3">
-        <div class="col-md-3">
-            <label class="form-label">نام واحد</label>
-            <InputText class="form-control" @bind-Value="model.Name" />
-            <ValidationMessage For="@(() => model.Name)" />
+    <!-- کارت: فرم -->
+    <div class="card prod-card">
+        <div class="card-header">معرفی واحد کالا</div>
+        <div class="card-body">
+
+            <EditForm EditContext="_editContext" OnValidSubmit="SaveAsync">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label">نام واحد</label>
+                        <InputText class="form-control" @bind-Value="model.Name" />
+                        <ValidationMessage For="@(() => model.Name)" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">نماد</label>
+                        <InputText class="form-control" @bind-Value="model.Symbol" />
+                        <ValidationMessage For="@(() => model.Symbol)" />
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label d-block">فعال</label>
+                        <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
+                    </div>
+                    <div class="col-md-5 d-flex gap-2">
+                        <button type="submit" class="btn btn-primary">@(isEditing ? "به‌روزرسانی" : "ذخیره")</button>
+                        @if (isEditing)
+                        {
+                            <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
+                        }
+                    </div>
+                </div>
+            </EditForm>
+
         </div>
-        <div class="col-md-2">
-            <label class="form-label">نماد</label>
-            <InputText class="form-control" @bind-Value="model.Symbol" />
-            <ValidationMessage For="@(() => model.Symbol)" />
-        </div>
-        <div class="col-md-2">
-            <label class="form-label d-block">فعال</label>
-            <InputCheckbox class="form-check-input" @bind-Value="model.IsActive" />
-        </div>
-        <div class="col-md-5 d-flex gap-2">
-            <button type="submit" class="btn btn-primary">@(isEditing ? "به‌روزرسانی" : "ذخیره")</button>
-            @if (isEditing)
+    </div>
+
+    <!-- کارت: لیست -->
+    <div class="card prod-card">
+        <div class="card-header">لیست</div>
+        <div class="card-body">
+
+            @if (isLoading)
             {
-                <button type="button" class="btn btn-outline-secondary" @onclick="CancelEdit">انصراف</button>
+                <p class="text-muted m-0">در حال بارگذاری...</p>
             }
+            else
+            {
+                <div class="table-responsive">
+                    <table class="table table-sm table-striped table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>نام</th>
+                                <th>نماد</th>
+                                <th class="text-center">فعال</th>
+                                <th>تاریخ ثبت</th>
+                                <th style="width:160px"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var u in items)
+                            {
+                                <tr>
+                                    <td>@u.Name</td>
+                                    <td>@(u.Symbol ?? "-")</td>
+                                    <td class="text-center">
+                                        <div class="form-check form-switch d-inline-block">
+                                            <input type="checkbox"
+                                                   class="form-check-input"
+                                                   checked="@u.IsActive"
+                                                   @onchange="(e) => ToggleActive(u, e.Value as bool?)" />
+                                        </div>
+                                    </td>
+                                    <td>@u.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
+                                    <td class="text-end">
+                                        <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(u)">ویرایش</button>
+                                        <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(u)">حذف</button>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mt-2">
+                    <div class="text-muted small">
+                        نمایش @(items.Count) ردیف از @totalCount (صفحه @pageNumber از @totalPages)
+                    </div>
+
+                    <nav>
+                        <ul class="pagination pagination-sm mb-0">
+                            <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
+                            </li>
+                            <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
+                            </li>
+
+                            <li class="page-item disabled">
+                                <span class="page-link">@pageNumber / @totalPages</span>
+                            </li>
+
+                            <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
+                            </li>
+                            <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
+                                <button class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
+                            </li>
+                        </ul>
+                    </nav>
+                </div>
+            }
+
         </div>
     </div>
-</EditForm>
 
-@if (isLoading)
-{
-    <p>در حال بارگذاری...</p>
-}
-else
-{
-    <div class="table-responsive">
-        <table class="table table-sm table-striped table-hover align-middle">
-            <thead class="table-light">
-                <tr>
-                    <th>نام</th>
-                    <th>نماد</th>
-                    <th class="text-center">فعال</th>
-                    <th>تاریخ ثبت</th>
-                    <th style="width:160px"></th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var u in items)
-                {
-                    <tr>
-                        <td>@u.Name</td>
-                        <td>@(u.Symbol ?? "-")</td>
-                        <td class="text-center">
-                            <div class="form-check form-switch d-inline-block">
-                                <input type="checkbox" class="form-check-input" checked="@u.IsActive"
-                                       @onchange="(e) => ToggleActive(u, e.Value as bool?)" />
-                            </div>
-                        </td>
-                        <td>@u.CreatedAt.ToString("yyyy/MM/dd HH:mm")</td>
-                        <td class="text-end">
-                            <button class="btn btn-outline-primary btn-sm" @onclick="() => BeginEdit(u)">ویرایش</button>
-                            <button class="btn btn-outline-danger btn-sm" @onclick="() => AskDelete(u)">حذف</button>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
-    </div>
+</div>
 
-    <div class="d-flex justify-content-between align-items-center mt-2">
-        <div class="text-muted small">
-            نمایش @(items.Count) ردیف از @totalCount (صفحه @pageNumber از @totalPages)
-        </div>
-
-        <nav>
-            <ul class="pagination pagination-sm mb-0">
-                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(1)">اول</button>
-                </li>
-                <li class="page-item @(pageNumber == 1 ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber - 1)">قبلی</button>
-                </li>
-
-                <li class="page-item disabled">
-                    <span class="page-link">@pageNumber / @totalPages</span>
-                </li>
-
-                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(pageNumber + 1)">بعدی</button>
-                </li>
-                <li class="page-item @(pageNumber >= totalPages ? "disabled" : "")">
-                    <button class="page-link" @onclick="() => LoadPageAsync(totalPages)">آخر</button>
-                </li>
-            </ul>
-        </nav>
-    </div>
-}
 
 <ConfirmModal ModalId="confirmDeleteUnit"
               Title="تأیید حذف"

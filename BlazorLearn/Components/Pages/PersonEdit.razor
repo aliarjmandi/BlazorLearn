@@ -9,141 +9,157 @@
 @inject NavigationManager Nav
 @using Microsoft.AspNetCore.Components.Forms
 
-<h3 class="mb-3">ویرایش شخص</h3>
+@attribute [Layout(typeof(BlazorLearn.Components.Layout.AdminLayout))]
 
-@if (isLoading)
-{
-    <div class="alert alert-info">در حال بارگذاری...</div>
-}
-else
-{
-    @if (!string.IsNullOrEmpty(error))
-    {
-        <div class="alert alert-danger">@error</div>
-    }
-    @if (!string.IsNullOrEmpty(success))
-    {
-        <div class="alert alert-success">@success</div>
-    }
 
-    <EditForm Model="@model" OnValidSubmit="@HandleSubmit"
-              FormName="person-edit" enctype="multipart/form-data">
-        <DataAnnotationsValidator />
-        <ValidationSummary />
+<div class="vstack gap-3">
 
-        <div class="row g-3">
-
-            <div class="col-md-6">
-                <label class="form-label">کد ملی</label>
-                <InputText class="form-control" @bind-Value="model.NationalCode" />
-                <ValidationMessage For="@(() => model.NationalCode)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">ایمیل</label>
-                <InputText class="form-control ltr" @bind-Value="model.Email" />
-                <ValidationMessage For="@(() => model.Email)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">نام</label>
-                <InputText class="form-control" @bind-Value="model.FirstName" />
-                <ValidationMessage For="@(() => model.FirstName)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">نام خانوادگی</label>
-                <InputText class="form-control" @bind-Value="model.LastName" />
-                <ValidationMessage For="@(() => model.LastName)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">تلفن</label>
-                <InputText class="form-control ltr" @bind-Value="model.PhoneNumber" />
-                <ValidationMessage For="@(() => model.PhoneNumber)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">تاریخ تولد</label>
-                <InputDate class="form-control" @bind-Value="model.DateOfBirth" />
-                <ValidationMessage For="@(() => model.DateOfBirth)" />
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">جنسیت</label>
-                <InputSelect class="form-select" @bind-Value="model.Gender">
-                    <option value="">انتخاب کنید...</option>
-                    @foreach (var g in genders)
-                    {
-                        <option value="@g">@g</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="@(() => model.Gender)" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">استان</label>
-                <InputSelect class="form-select"
-                             TValue="int"
-                             Value="model.ProvinceId"
-                             ValueChanged="@(EventCallback.Factory.Create<int>(this, OnProvinceChanged))"
-                             ValueExpression="@(() => model.ProvinceId)">
-                    <option value="0">انتخاب کنید...</option>
-                    @foreach (var p in provinces)
-                    {
-                        <option value="@p.Id">@p.Name</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="@(() => model.ProvinceId)" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">شهر</label>
-                <InputSelect class="form-select" TValue="int" @bind-Value="model.CityId" disabled="@(!cities.Any())">
-                    <option value="0">انتخاب کنید...</option>
-                    @foreach (var c in cities)
-                    {
-                        <option value="@c.Id">@c.Name</option>
-                    }
-                </InputSelect>
-                <ValidationMessage For="@(() => model.CityId)" />
-            </div>
-
-            <div class="col-12">
-                <label class="form-label">آدرس</label>
-                <InputTextArea class="form-control" rows="3" @bind-Value="model.Address" />
-                <ValidationMessage For="@(() => model.Address)" />
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">تصویر فعلی</label><br />
-                @if (!string.IsNullOrWhiteSpace(model.ProfileImagePath))
-                {
-                    <img src="@model.ProfileImagePath" class="rounded" style="width:120px;height:120px;object-fit:cover;" />
-                }
-                else
-                {
-                    <span class="text-muted">—</span>
-                }
-            </div>
-
-            <div class="col-md-6">
-                <label class="form-label">انتخاب تصویر جدید (اختیاری)</label>
-                <InputFile OnChange="OnFileSelected" />
-                @if (!string.IsNullOrEmpty(previewFileName))
-                {
-                    <div class="form-text">فایل انتخاب‌شده: @previewFileName</div>
-                }
-            </div>
-
-            <div class="col-12 mt-2">
-                <button type="submit" class="btn btn-success" disabled="@isSaving">
-                    @(isSaving ? "در حال ذخیره..." : "ذخیره تغییرات")
-                </button>
-                <button type="button"
-                        class="btn btn-secondary ms-2"
-                        @onclick="@(() => Nav.NavigateTo($"/person/{id}"))"
-                        disabled="@isSaving">
-                    انصراف
-                </button>
-            </div>
+    <!-- کارت: ویرایش شخص -->
+    <div class="card">
+        <div class="card-header fw-semibold">
+            ویرایش شخص
         </div>
-    </EditForm>
-}
+        <div class="card-body">
+            @if (isLoading)
+            {
+                <div class="alert alert-info">در حال بارگذاری...</div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+                @if (!string.IsNullOrEmpty(success))
+                {
+                    <div class="alert alert-success">@success</div>
+                }
+
+                <EditForm Model="@model" OnValidSubmit="@HandleSubmit"
+                          FormName="person-edit" enctype="multipart/form-data">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row g-3">
+
+                        <div class="col-md-6">
+                            <label class="form-label">کد ملی</label>
+                            <InputText class="form-control" @bind-Value="model.NationalCode" />
+                            <ValidationMessage For="@(() => model.NationalCode)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">ایمیل</label>
+                            <InputText class="form-control ltr" @bind-Value="model.Email" />
+                            <ValidationMessage For="@(() => model.Email)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">نام</label>
+                            <InputText class="form-control" @bind-Value="model.FirstName" />
+                            <ValidationMessage For="@(() => model.FirstName)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">نام خانوادگی</label>
+                            <InputText class="form-control" @bind-Value="model.LastName" />
+                            <ValidationMessage For="@(() => model.LastName)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تلفن</label>
+                            <InputText class="form-control ltr" @bind-Value="model.PhoneNumber" />
+                            <ValidationMessage For="@(() => model.PhoneNumber)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تاریخ تولد</label>
+                            <InputDate class="form-control" @bind-Value="model.DateOfBirth" />
+                            <ValidationMessage For="@(() => model.DateOfBirth)" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">جنسیت</label>
+                            <InputSelect class="form-select" @bind-Value="model.Gender">
+                                <option value="">انتخاب کنید...</option>
+                                @foreach (var g in genders)
+                                {
+                                    <option value="@g">@g</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.Gender)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">استان</label>
+                            <InputSelect class="form-select"
+                                         TValue="int"
+                                         Value="model.ProvinceId"
+                                         ValueChanged="@(EventCallback.Factory.Create<int>(this, OnProvinceChanged))"
+                                         ValueExpression="@(() => model.ProvinceId)">
+                                <option value="0">انتخاب کنید...</option>
+                                @foreach (var p in provinces)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.ProvinceId)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">شهر</label>
+                            <InputSelect class="form-select" TValue="int" @bind-Value="model.CityId" disabled="@(!cities.Any())">
+                                <option value="0">انتخاب کنید...</option>
+                                @foreach (var c in cities)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </InputSelect>
+                            <ValidationMessage For="@(() => model.CityId)" />
+                        </div>
+
+                        <div class="col-12">
+                            <label class="form-label">آدرس</label>
+                            <InputTextArea class="form-control" rows="3" @bind-Value="model.Address" />
+                            <ValidationMessage For="@(() => model.Address)" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">تصویر فعلی</label><br />
+                            @if (!string.IsNullOrWhiteSpace(model.ProfileImagePath))
+                            {
+                                <img src="@model.ProfileImagePath" class="rounded" style="width:120px;height:120px;object-fit:cover;" />
+                            }
+                            else
+                            {
+                                <span class="text-muted">—</span>
+                            }
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">انتخاب تصویر جدید (اختیاری)</label>
+                            <InputFile OnChange="OnFileSelected" />
+                            @if (!string.IsNullOrEmpty(previewFileName))
+                            {
+                                <div class="form-text">فایل انتخاب‌شده: @previewFileName</div>
+                            }
+                        </div>
+
+                        <div class="col-12 mt-2">
+                            <button type="submit" class="btn btn-success" disabled="@isSaving">
+                                @(isSaving ? "در حال ذخیره..." : "ذخیره تغییرات")
+                            </button>
+                            <button type="button"
+                                    class="btn btn-secondary ms-2"
+                                    @onclick="@(() => Nav.NavigateTo($"/person/{id}"))"
+                                    disabled="@isSaving">
+                                انصراف
+                            </button>
+                        </div>
+                    </div>
+                </EditForm>
+            }
+
+        </div>
+    </div>
+</div>
+
+
+
 
 @code {
     [Parameter] public Guid id { get; set; }
