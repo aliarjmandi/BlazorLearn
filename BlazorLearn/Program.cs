@@ -4,6 +4,7 @@ using BlazorLearn.Endpoints.Auth;
 using BlazorLearn.Services.Implementations;
 // اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
 using Identity; // (از اسکفولد شما)
+using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization; // برای AuthenticationStateProvider
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -47,7 +48,14 @@ builder.Services.AddScoped<BlazorLearn.Services.Infra.IFileStorage, BlazorLearn.
 builder.Services.AddControllers();
 builder.Services.AddServerSideBlazor().AddCircuitOptions(o => o.DetailedErrors = true);
 
-
+builder.Services.AddScoped(sp =>
+{
+    var nav = sp.GetRequiredService<NavigationManager>();
+    return new HttpClient
+    {
+        BaseAddress = new Uri(nav.BaseUri) // مثلا https://localhost:7241/
+    };
+});
 
 
 // Blazor Server
@@ -79,8 +87,9 @@ builder.Services.AddAuthorization();
 builder.Services
     .AddIdentityCore<IdentityUser>(options =>
     {
-        options.SignIn.RequireConfirmedAccount = true;
-        options.User.RequireUniqueEmail = true;
+        //ورود با کمک پیامک خواهد بود
+        options.SignIn.RequireConfirmedAccount = false;
+        options.User.RequireUniqueEmail = false;
         // در صورت نیاز تنظیمات Password/Lockout و ... را اینجا اضافه کن
     })
     .AddRoles<IdentityRole>()                   // ← مهم: نقش‌ها

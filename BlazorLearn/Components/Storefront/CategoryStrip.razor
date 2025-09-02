@@ -1,0 +1,29 @@
+﻿@using BlazorLearn.Components.Storefront.Models
+@namespace BlazorLearn.Components.Storefront
+
+@if (Items?.Count > 0)
+{
+    <div class="@CssClass">
+        <div class="row g-3">
+            @foreach (var c in Items)
+            {
+                <div class="col-6 col-md-3">
+                    <a class="sf-cat-card d-flex align-items-center gap-2 p-2 bg-white border rounded-3 text-reset"
+                       href="@c.LinkUrl">
+                        <img src="@c.ImageUrl" alt="@c.Title" width="36" height="36" class="rounded" />
+                        <span class="fw-600">@c.Title</span>
+                    </a>
+                </div>
+            }
+        </div>
+    </div>
+}
+
+<br />
+CategoryStrip.razor
+
+@code {
+    // حالا از مدلِ مشترک استفاده می‌کنیم
+    [Parameter] public List<CategoryItem> Items { get; set; } = new();
+    [Parameter] public string? CssClass { get; set; }
+}

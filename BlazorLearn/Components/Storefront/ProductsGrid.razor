@@ -1,0 +1,35 @@
+﻿@using BlazorLearn.Components.Storefront.Models
+
+<div class="row g-3">
+    @foreach (var p in Items ?? Enumerable.Empty<ProductItem>())
+    {
+        <div class="col-6 col-md-4 col-lg-3">
+            <div class="card h-100">
+                <a href="@p.LinkUrl"><img src="@p.ImageUrl" class="card-img-top" alt="@p.Title" /></a>
+                <div class="card-body">
+                    <h6 class="card-title text-truncate">@p.Title</h6>
+                    <div class="d-flex align-items-baseline gap-2">
+                        <span class="fw-bold">@p.Price.ToString("N0") تومان</span>
+                        @if (p.OldPrice is not null)
+                        {
+                            <span class="text-muted text-decoration-line-through small">
+                                @p.OldPrice.Value.ToString("N0")
+                            </span>
+                        }
+                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                    <a class="btn btn-sm btn-primary w-100" href="@p.LinkUrl">مشاهده</a>
+                </div>
+            </div>
+        </div>
+    }
+</div>
+
+
+<br />
+ProductsGrid.razor
+
+@code {
+    [Parameter] public List<ProductItem>? Items { get; set; }
+}

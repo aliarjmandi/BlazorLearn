@@ -1,0 +1,48 @@
+﻿@page "/store"
+
+@using BlazorLearn.Components.Storefront
+@using BlazorLearn.Components.Storefront.Models
+
+<!-- Slider -->
+Slider
+<Components.Storefront.HeroSlider Slides="slides" />
+
+<!-- Categories -->
+<Components.Storefront.CategoryStrip Items="categories" class="mt-3" />
+
+<br />
+Products
+<!-- Products -->
+<section class="mt-4">
+    <div class="d-flex align-items-center mb-2">
+        <h5 class="m-0">محصولات پیشنهادی</h5>
+        <a class="ms-auto small text-secondary" href="/category/featured">مشاهده همه</a>
+    </div>
+    <Components.Storefront.ProductsGrid Items="products" />
+</section>
+
+@code {
+    // Mock data (فعلا)
+    private List<SlideItem> slides = new()
+    {
+        new() { ImageUrl="/uploads/banners/hero1.jpg", LinkUrl="/product/x1", Caption="پروموشن ۱" },
+        new() { ImageUrl="/uploads/banners/hero2.jpg", LinkUrl="/product/x2", Caption="پروموشن ۲" },
+    };
+
+    private List<CategoryItem> categories = new()
+    {
+        new() { Title="کالای دیجیتال", LinkUrl="/category/digital", ImageUrl="/uploads/cats/digital.png" },
+        new() { Title="مد و پوشاک",   LinkUrl="/category/fashion", ImageUrl="/uploads/cats/fashion.png" },
+        new() { Title="خانه و آشپزخانه", LinkUrl="/category/home", ImageUrl="/uploads/cats/home.png" },
+    };
+
+    private List<ProductItem> products = new()
+    {
+        new() { Id=Guid.NewGuid(), Title="هدفون بی‌سیم X", LinkUrl="/product/p1",
+                ImageUrl="/uploads/products/p1.jpg", Price=1_250_000, OldPrice=1_590_000, DiscountPct=20, InStock=true },
+        new() { Id=Guid.NewGuid(), Title="کتانی مردانه Y", LinkUrl="/product/p2",
+                ImageUrl="/uploads/products/p2.jpg", Price=2_350_000 },
+        new() { Id=Guid.NewGuid(), Title="اتو بخار خانگی", LinkUrl="/product/p3",
+                ImageUrl="/uploads/products/p3.jpg", Price=890_000, OldPrice=990_000, DiscountPct=10 }
+    };
+}

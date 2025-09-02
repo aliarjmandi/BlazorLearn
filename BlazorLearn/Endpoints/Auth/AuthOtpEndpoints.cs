@@ -92,7 +92,7 @@ public static class AuthOtpEndpoints
         log.LogInformation("RESEND OTP for {Phone} = {Code}", e164, issue.CodePreviewForDev);
         return Results.Ok(new ApiResult(true, $"کد تایید مجدداً ارسال شد به {MaskPhone(e164)}"));
     }
-
+    /*
     private static async Task<IResult> VerifyCodeAsync(
         VerifyOtpDto dto,
         IOtpService otp,
@@ -139,6 +139,63 @@ public static class AuthOtpEndpoints
 
         return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
     }
+    */
+    private static async Task<IResult> VerifyCodeAsync(
+    VerifyOtpDto dto,
+    IOtpService otp,
+    UserManager<IdentityUser> userManager,
+    SignInManager<IdentityUser> signInManager)
+    {
+        var e164 = PhoneUtil.ToE164(dto.Phone);
+        if (string.IsNullOrWhiteSpace(e164))
+            return Results.BadRequest(new ApiResult(false, "شماره موبایل معتبر نیست."));
+
+        var ok = await otp.VerifyAsync(e164, dto.Code, purpose: "login");
+        if (!ok)
+            return Results.BadRequest(new ApiResult(false, "کد تایید نادرست یا منقضی است."));
+
+        // پیدا/ایجاد کردن کاربر بر اساس شماره
+        var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == e164);
+        if (user is null)
+        {
+            // ایمیل ساختگیِ یونیک و معتبر برای آسودگی از برخی پالیسی‌ها (اختیاری اما توصیه‌شده)
+            var fakeEmail = $"{e164.Trim('+')}@phone.local";
+
+            user = new IdentityUser
+            {
+                UserName = e164,
+                PhoneNumber = e164,
+                PhoneNumberConfirmed = true,
+                Email = fakeEmail,
+                EmailConfirmed = true
+            };
+
+            var create = await userManager.CreateAsync(user);
+            if (!create.Succeeded)
+            {
+                var details = string.Join(" | ", create.Errors.Select(e => $"{e.Code}: {e.Description}"));
+                return Results.BadRequest(new ApiResult(false, $"ساخت حساب کاربری ناموفق بود: {details}"));
+            }
+
+            // نقش پیش‌فرض اگر خواستی:
+            // await userManager.AddToRoleAsync(user, "Customer");
+        }
+        else
+        {
+            if (!user.PhoneNumberConfirmed)
+            {
+                user.PhoneNumberConfirmed = true;
+                await userManager.UpdateAsync(user);
+            }
+        }
+
+        // ورود بدون پسورد
+        await signInManager.SignInAsync(user, isPersistent: dto.RememberMe);
+
+        return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
+    }
+
+
 
     // ---------- Helpers ----------
     private static string MaskPhone(string e164)

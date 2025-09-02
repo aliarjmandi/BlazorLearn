@@ -25,6 +25,7 @@
 	  <Content Remove="Components\Admin\Units - Copy.razor" />
 	</ItemGroup>
 
+
 	<ItemGroup>
 		<PackageReference Include="Dapper" Version="2.1.66" />
 		<PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.19" />

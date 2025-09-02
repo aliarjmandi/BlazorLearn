@@ -1,0 +1,7 @@
+﻿.sf-cat-card {
+    transition: transform .1s ease;
+}
+
+    .sf-cat-card:hover {
+        transform: translateY(-2px);
+    }

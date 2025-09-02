@@ -1,0 +1,48 @@
+﻿@using BlazorLearn.Components.Storefront.Models
+@namespace BlazorLearn.Components.Storefront
+
+<div class="sf-prod-card bg-white border rounded-3 h-100 d-flex flex-column">
+    <a href="@Item.LinkUrl" class="text-reset">
+        <div class="ratio ratio-1x1 rounded-top-3 overflow-hidden">
+            <img src="@Item.ImageUrl" class="w-100 h-100" style="object-fit:cover;" alt="@Item.Title" />
+        </div>
+        <div class="p-2">
+            <div class="small text-truncate-2 mb-1">@Item.Title</div>
+
+            @if (Item.DiscountPct is > 0)
+            {
+                var final = Math.Round(Item.Price * (100 - Item.DiscountPct!.Value) / 100m, 0);
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold">@Money(final) تومان</span>
+                    <small class="text-decoration-line-through text-muted">@Money(Item.Price)</small>
+                    <span class="badge bg-danger-subtle text-danger small">@Item.DiscountPct% -</span>
+                </div>
+            }
+            else if (Item.OldPrice is not null)
+            {
+                <div class="d-flex align-items-center gap-2">
+                    <span class="fw-bold">@Money(Item.Price) تومان</span>
+                    <small class="text-decoration-line-through text-muted">@Money(Item.OldPrice!.Value)</small>
+                </div>
+            }
+            else
+            {
+                <div class="fw-bold">@Money(Item.Price) تومان</div>
+            }
+        </div>
+    </a>
+
+    <div class="mt-auto p-2">
+        <a href="@Item.LinkUrl" class="btn btn-sm btn-outline-primary w-100">مشاهده</a>
+    </div>
+</div>
+
+<br />
+ProductCard.razor
+
+
+@code {
+    [Parameter] public ProductItem Item { get; set; } = default!;
+
+    static string Money(decimal v) => v.ToString("#,0");
+}
