@@ -1,4 +1,4 @@
-﻿@using BlazorLearn.Components.Storefront.Models
+﻿@using Components.Storefront.Models
 
 <div class="row g-3">
     @foreach (var p in Items ?? Enumerable.Empty<ProductItem>())
@@ -26,9 +26,6 @@
     }
 </div>
 
-
-<br />
-ProductsGrid.razor
 
 @code {
     [Parameter] public List<ProductItem>? Items { get; set; }

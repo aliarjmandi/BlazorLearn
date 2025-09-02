@@ -1,58 +1,41 @@
-﻿@using System.Security.Claims
-@inherits LayoutComponentBase
+﻿@inherits LayoutComponentBase
 
-<div class="storefront rtl">
+<div class="sf-wrap">
     <!-- Header -->
-    <header class="sf-header border-bottom bg-white">
-        <div class="container d-flex align-items-center py-2">
-            <a class="navbar-brand fw-bold me-3" href="/">فروشگاه</a>
+    <header class="sf-header">
+        <div class="sf-container">
+            <div class="d-flex align-items-center gap-2 w-100">
+                <a href="/" class="brand text-reset text-decoration-none">
+                    فروشگاه
+                </a>
 
-            <div class="ms-auto d-flex align-items-center gap-3">
-                @if (contextUser?.Identity?.IsAuthenticated ?? false)
-                {
-                    <span class="text-muted">سلام، @contextUser.Identity!.Name</span>
-                    <a class="btn btn-sm btn-outline-secondary" href="/account">پروفایل</a>
-                    <a class="btn btn-sm btn-outline-danger" href="/Account/Logout">خروج</a>
-                }
-                else
-                {
-                    <a class="btn btn-sm btn-primary" href="/phonelogin">ورود / ثبت‌نام</a>
-                }
+                <!-- فضای انعطاف برای جدا کردن دکمه از عنوان -->
+                <div class="ms-auto d-flex align-items-center gap-3">
+                    <a href="/store" class="link-secondary text-decoration-none">خانه</a>
+                    <a href="/phonelogin" class="btn btn-primary">ثبت‌نام / ورود</a>
+                </div>
             </div>
         </div>
     </header>
 
-    <!-- Body -->
-    <main class="sf-body">
-        <div class="container py-3">
+    <!-- Main -->
+    <main class="sf-main">
+        <div class="sf-container">
             @Body
         </div>
     </main>
 
     <!-- Footer -->
-    <footer class="sf-footer border-top bg-white mt-4">
-        <div class="container py-4">
-            <div class="row g-3">
-                <div class="col-12 col-md-6 text-muted small">
-                    © @DateTime.Now.Year فروشگاه آنلاین — همه حقوق محفوظ است.
-                </div>
-                <div class="col-12 col-md-6 text-md-start text-muted small d-flex gap-3">
-                    <a href="/about" class="link-secondary">درباره ما</a>
-                    <a href="/policies" class="link-secondary">قوانین و حریم خصوصی</a>
-                    <a href="/contact" class="link-secondary">تماس با ما</a>
-                </div>
+    <footer class="sf-footer">
+        <div class="sf-container d-flex flex-wrap gap-3 justify-content-between small">
+            <div class="d-flex gap-3">
+                <a href="/about" class="text-reset text-decoration-none">درباره‌ ما</a>
+                <a href="/privacy" class="text-reset text-decoration-none">قوانین و حریم خصوصی</a>
+                <a href="/contact" class="text-reset text-decoration-none">تماس با ما</a>
+            </div>
+            <div class="text-muted">
+                © 2025 فروشگاه آنلاین — همه حقوق محفوظ است.
             </div>
         </div>
     </footer>
 </div>
-
-@code {
-    [CascadingParameter] private Task<AuthenticationState>? AuthTask { get; set; }
-    private ClaimsPrincipal? contextUser;
-
-    protected override async Task OnInitializedAsync()
-    {
-        if (AuthTask is not null)
-            contextUser = (await AuthTask).User;
-    }
-}

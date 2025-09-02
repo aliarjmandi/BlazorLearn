@@ -1,32 +1,30 @@
 ﻿@page "/store"
 
-@using BlazorLearn.Components.Storefront
-@using BlazorLearn.Components.Storefront.Models
+@using Components.Storefront
+@using Components.Storefront.Models
 
 <!-- Slider -->
-Slider
-<Components.Storefront.HeroSlider Slides="slides" />
+
+<HeroSlider Slides="slides" />
 
 <!-- Categories -->
-<Components.Storefront.CategoryStrip Items="categories" class="mt-3" />
+<CategoryStrip Items="categories" CssClass="mt-3" />
 
-<br />
-Products
 <!-- Products -->
 <section class="mt-4">
     <div class="d-flex align-items-center mb-2">
         <h5 class="m-0">محصولات پیشنهادی</h5>
         <a class="ms-auto small text-secondary" href="/category/featured">مشاهده همه</a>
     </div>
-    <Components.Storefront.ProductsGrid Items="products" />
+    <ProductsGrid Items="products" />
 </section>
 
 @code {
     // Mock data (فعلا)
     private List<SlideItem> slides = new()
     {
-        new() { ImageUrl="/uploads/banners/hero1.jpg", LinkUrl="/product/x1", Caption="پروموشن ۱" },
-        new() { ImageUrl="/uploads/banners/hero2.jpg", LinkUrl="/product/x2", Caption="پروموشن ۲" },
+        new() { ImageUrl="/uploads/banners/p1.png", LinkUrl="/product/x1", Caption="پروموشن ۱" },
+        new() { ImageUrl="/uploads/banners/p2.png", LinkUrl="/product/x2", Caption="پروموشن ۲" },
     };
 
     private List<CategoryItem> categories = new()
