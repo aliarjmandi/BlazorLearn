@@ -1,5 +1,6 @@
 ﻿using BlazorLearn.Components;
 using BlazorLearn.Components.Account;                // برای IdentitySeed
+using BlazorLearn.Endpoints.Auth;
 using BlazorLearn.Services.Implementations;
 // اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
 using Identity; // (از اسکفولد شما)
@@ -29,6 +30,12 @@ builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UnitService>();
 
+// برای کشِ In-Memory
+builder.Services.AddMemoryCache();
+
+// سرویس OTP (فعلاً In-Memory)
+builder.Services.AddSingleton<IOtpService, InMemoryOtpService>();
+
 
 builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductImageService>();
 builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductService>(); // 
@@ -36,12 +43,11 @@ builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductService>(
 // File storage for images
 builder.Services.AddScoped<BlazorLearn.Services.Infra.IFileStorage, BlazorLearn.Services.Infra.FileStorage>();
 
-
-
 // ثبت کنترلرها
 builder.Services.AddControllers();
-
 builder.Services.AddServerSideBlazor().AddCircuitOptions(o => o.DetailedErrors = true);
+
+
 
 
 // Blazor Server
@@ -86,6 +92,36 @@ builder.Services
 builder.Services.AddSingleton<IEmailSender<IdentityUser>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
+
+
+
+// --- Seed Roles & Default Admin ---
+/*
+using (var scope = app.Services.CreateScope())
+{
+    var roleMgr = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
+    var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+
+    string[] roles = { "Admin", "Seller" };
+    foreach (var r in roles)
+        if (!await roleMgr.RoleExistsAsync(r))
+            await roleMgr.CreateAsync(new IdentityRole(r));
+
+    // ادمین پیش‌فرض (اختیاری)
+    var adminEmail = "admin@site.local";
+    var admin = await userMgr.FindByEmailAsync(adminEmail);
+    if (admin is null)
+    {
+        admin = new IdentityUser { UserName = adminEmail, Email = adminEmail, EmailConfirmed = true };
+        await userMgr.CreateAsync(admin, "Admin#12345"); // پسورد را بعداً تغییر بده
+        await userMgr.AddToRoleAsync(admin, "Admin");
+    }
+}
+*/
+
+
+// مپ اندپوینت‌ها
+app.MapAuthOtpEndpoints(); // using BlazorLearn.Endpoints.Auth;
 
 // --- Seeding نقش‌ها و (اختیاری) افزودن کاربر به نقش ---
 // اگر متدهای Seed شما خودش CreateScope می‌کند، همین کافی است
