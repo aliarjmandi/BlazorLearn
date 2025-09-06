@@ -99,23 +99,28 @@
 }
 
 /* همیشه فلکس؛ با opacity پنهان می‌شود */
+/* پنل منو از سمت راست باز شود */
 .sf-mega__panel {
     position: absolute;
-    inset-inline-start: 0;
+    inset-inline-end: 0; /* ← قبلاً inset-inline-start:0 بود */
     top: 100%;
     width: min(980px,95vw);
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: .75rem;
+    border-radius: .75rem 0 0 .75rem;
     margin-top: .5rem;
-    display: flex;
+    display: none;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
     direction: rtl;
-    z-index: 1055;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(8px);
-    transition: opacity .15s ease, transform .15s ease, visibility 0s linear .15s;
+    z-index: 40
+}
+.sf-mega__panel {
+    outline: 2px dashed red;
+}
+
+/* نمایش با Hover روی کل باکس */
+.sf-mega:hover .sf-mega__panel {
+    display: flex
 }
 
     .sf-mega__panel.show {
@@ -216,7 +221,6 @@
 }
 
 
-/* ===== Product card sizing ===== */
 /* ===== Product card sizing (یکدست) ===== */
 .sf-prod-card {
     display: flex;
@@ -252,3 +256,38 @@
         margin-top: auto
     }
 
+
+/* هدر بالای همه لایه‌ها و قابل Hover */
+.sf-header {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+}
+
+/* ریشه‌ی مگا منو راست‌چین شود */
+.sf-mega {
+    position: relative;
+}
+
+.sf-mega--right .sf-mega__panel {
+    inset-inline-end: 0; /* راست */
+    inset-inline-start: auto; /* چپ آزاد */
+}
+
+/* باز شدن خودکار با Hover روی بلاک مگا منو */
+@media (hover:hover) {
+    .sf-mega:hover .sf-mega__panel {
+        display: flex;
+    }
+}
+
+/* در موبایل Hover نداریم: فقط با کلاس show باز می‌شود */
+@media (hover:none) {
+    .sf-mega__panel {
+        display: none;
+    }
+
+        .sf-mega__panel.show {
+            display: flex;
+        }
+}

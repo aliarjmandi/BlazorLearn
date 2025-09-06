@@ -4,12 +4,16 @@
 
 <div class="sf-container mt-3">
     <div class="d-flex align-items-center justify-content-between mb-3">
-        <h5 class="m-0 fw-bold">فروشگاه</h5>
-        <MegaMenu />
+        @* <MegaMenu /> *@
     </div>
 
     <!-- اسلایدر -->
-    <HeroSlider Slides="slides" CssClass="mb-3" />
+    <HeroSlider Slides="slides"
+                CssClass="mb-3"
+                Autoplay="true"
+                IntervalMs="4500"
+                ShowIndicators="true"
+                ShowControls="true" />
 
     <!-- محصولات -->
     <section class="mt-4">
@@ -34,7 +38,7 @@
 
     protected override async Task OnInitializedAsync()
     {
-        slides    = (await Catalog.GetSlidesAsync()).ToList();
-        products  = (await Catalog.GetFeaturedProductsAsync(12)).ToList();
+        slides = (await Catalog.GetSlidesAsync()).ToList();
+        products = (await Catalog.GetFeaturedProductsAsync(12)).ToList();
     }
 }

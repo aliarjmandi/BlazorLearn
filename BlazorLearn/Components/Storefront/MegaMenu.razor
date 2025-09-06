@@ -1,8 +1,8 @@
 ﻿@using BlazorLearn.Data.DTOs
 @inject ICatalogReadService Catalog
 
-<div class="sf-mega">
-    <button class="btn btn-outline-secondary sf-mega__btn"
+<div class="sf-mega sf-mega--right @CssClass">
+    <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
             @onclick="ToggleMenu"
             @onmouseenter="OpenOnHover">
         <i class="bi bi-list"></i>
@@ -19,7 +19,7 @@
                 <div class="sf-mega__root @(activeRoot?.Id == r.Id ? "active" : "")"
                      @onmouseenter="() => SetActive(r)">
                     <span class="sf-mega__root-icon"><i class="bi bi-grid-3x3-gap"></i></span>
-                    <span class="sf-mega__root-text">@r.Name</span>
+                    <span class="sf-mega__root-text text-truncate">@r.Name</span>
                     <i class="bi bi-chevron-left ms-auto"></i>
                 </div>
             }
@@ -55,6 +55,8 @@
 </div>
 
 @code {
+    [Parameter] public string? CssClass { get; set; }   // ← پارامتر کلاس سفارشی
+
     class CatNode
     {
         public Guid Id { get; set; }
@@ -92,15 +94,23 @@
 
     void ToggleMenu()
     {
+        // موبایل/تاچ
         open = !open;
         if (open && activeRoot is null && roots.Count > 0)
             activeRoot = roots[0];
     }
+
     void OpenOnHover()
     {
+        // دسکتاپ (hover)
         open = true;
         if (activeRoot is null && roots.Count > 0)
             activeRoot = roots[0];
     }
-    void SetActive(CatNode r) { activeRoot = r; open = true; }
+
+    void SetActive(CatNode r)
+    {
+        activeRoot = r;
+        open = true;
+    }
 }

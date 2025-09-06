@@ -1,40 +1,22 @@
-﻿@inherits LayoutComponentBase
+﻿@using BlazorLearn.Components.Storefront
+@inherits LayoutComponentBase
 
 <div class="sf-wrap">
-    <!-- Header -->
-    <header class="sf-header">
-        <div class="sf-container">
-            <div class="d-flex align-items-center gap-2 w-100">
-                <a href="/" class="brand text-reset text-decoration-none">
-                    فروشگاه
-                </a>
+    <HeaderBar />
 
-                <!-- فضای انعطاف برای جدا کردن دکمه از عنوان -->
-                <div class="ms-auto d-flex align-items-center gap-3">
-                    <a href="/store" class="link-secondary text-decoration-none">خانه</a>
-                    <a href="/phonelogin" class="btn btn-primary">ثبت‌نام / ورود</a>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Main -->
     <main class="sf-main">
         <div class="sf-container">
             @Body
         </div>
     </main>
 
-    <!-- Footer -->
     <footer class="sf-footer">
-        <div class="sf-container d-flex flex-wrap gap-3 justify-content-between small">
+        <div class="sf-container small d-flex justify-content-between">
+            <span>© 2025 فروشگاه آنلاین — همه حقوق محفوظ است.</span>
             <div class="d-flex gap-3">
-                <a href="/about" class="text-reset text-decoration-none">درباره‌ ما</a>
+                <a href="/about" class="text-reset text-decoration-none">درباره ما</a>
                 <a href="/privacy" class="text-reset text-decoration-none">قوانین و حریم خصوصی</a>
                 <a href="/contact" class="text-reset text-decoration-none">تماس با ما</a>
-            </div>
-            <div class="text-muted">
-                © 2025 فروشگاه آنلاین — همه حقوق محفوظ است.
             </div>
         </div>
     </footer>
