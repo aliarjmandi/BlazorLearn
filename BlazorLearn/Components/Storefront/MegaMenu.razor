@@ -1,0 +1,106 @@
+﻿@using BlazorLearn.Data.DTOs
+@inject ICatalogReadService Catalog
+
+<div class="sf-mega">
+    <button class="btn btn-outline-secondary sf-mega__btn"
+            @onclick="ToggleMenu"
+            @onmouseenter="OpenOnHover">
+        <i class="bi bi-list"></i>
+        دسته‌بندی‌ها
+    </button>
+
+    <div class="sf-mega__panel @(open ? "show" : "")"
+         @onmouseenter="() => open = true"
+         @onmouseleave="() => open = false">
+
+        <div class="sf-mega__roots">
+            @foreach (var r in roots)
+            {
+                <div class="sf-mega__root @(activeRoot?.Id == r.Id ? "active" : "")"
+                     @onmouseenter="() => SetActive(r)">
+                    <span class="sf-mega__root-icon"><i class="bi bi-grid-3x3-gap"></i></span>
+                    <span class="sf-mega__root-text">@r.Name</span>
+                    <i class="bi bi-chevron-left ms-auto"></i>
+                </div>
+            }
+        </div>
+
+        <div class="sf-mega__col">
+            @if (activeRoot is not null)
+            {
+                <div class="sf-mega__header">
+                    <a class="sf-mega__all" href="@($"/category/{activeRoot.Slug}")">
+                        مشاهده دسته «@activeRoot.Name»
+                        <i class="bi bi-arrow-left-short"></i>
+                    </a>
+                </div>
+
+                <div class="sf-mega__groups">
+                    @foreach (var ch in activeRoot.Children)
+                    {
+                        <div class="sf-mega__group">
+                            <a class="sf-mega__group-title" href="@($"/category/{ch.Slug}")">@ch.Name</a>
+                            <ul class="sf-mega__links">
+                                @foreach (var g in ch.Children)
+                                {
+                                    <li><a href="@($"/category/{g.Slug}")">@g.Name</a></li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+@code {
+    class CatNode
+    {
+        public Guid Id { get; set; }
+        public string Name { get; set; } = default!;
+        public string Slug { get; set; } = default!;
+        public Guid? ParentId { get; set; }
+        public List<CatNode> Children { get; set; } = new();
+    }
+
+    bool open;
+    List<CatNode> roots = new();
+    CatNode? activeRoot;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var flat = (await Catalog.GetCategoriesAsync())
+            .Select(c => new CatNode { Id = c.Id, Name = c.Name, Slug = c.Slug, ParentId = c.ParentId })
+            .ToList();
+
+        var dict = flat.ToDictionary(x => x.Id);
+        foreach (var n in flat)
+            if (n.ParentId is Guid p && dict.TryGetValue(p, out var parent))
+                parent.Children.Add(n);
+
+        roots = flat.Where(x => x.ParentId == null).OrderBy(x => x.Name).ToList();
+        foreach (var r in roots)
+        {
+            r.Children = r.Children.OrderBy(x => x.Name).ToList();
+            foreach (var ch in r.Children)
+                ch.Children = ch.Children.OrderBy(x => x.Name).ToList();
+        }
+
+        activeRoot = roots.FirstOrDefault();
+    }
+
+    void ToggleMenu()
+    {
+        open = !open;
+        if (open && activeRoot is null && roots.Count > 0)
+            activeRoot = roots[0];
+    }
+    void OpenOnHover()
+    {
+        open = true;
+        if (activeRoot is null && roots.Count > 0)
+            activeRoot = roots[0];
+    }
+    void SetActive(CatNode r) { activeRoot = r; open = true; }
+}

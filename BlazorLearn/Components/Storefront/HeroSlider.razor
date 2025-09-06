@@ -1,19 +1,28 @@
-﻿@namespace Components.Storefront
-@using BlazorLearn.Data.DTOs
+﻿@using BlazorLearn.Data.DTOs
 
-@if (Slides?.Any() == true)
-{
-    <div class="sf-hero">
-        @* … مارکاپ خودت … *@
-        @foreach (var s in Slides)
-        {
-            <a href="@s.LinkUrl">
-                <img src="@s.ImageUrl" alt="@s.Caption" />
-            </a>
-        }
-    </div>
-}
+<div class="position-relative @CssClass" @attributes="AdditionalAttributes">
+    @if (Slides?.Any() == true)
+    {
+        <div class="sf-hero">
+            @* … مارکاپ خودت … *@
+            @foreach (var s in Slides)
+            {
+                <a href="@s.LinkUrl">
+                    <img src="@s.ImageUrl" alt="@s.Caption" />
+                </a>
+            }
+        </div>
+    }
+</div>
 
 @code {
     [Parameter] public IEnumerable<SlideDto> Slides { get; set; } = Enumerable.Empty<SlideDto>();
+
+    // برای دریافت کلاس ظاهری از بیرون
+    [Parameter] public string? CssClass { get; set; }
+
+    // برای پذیرفتن سایر اَتریبیوت‌ها (id, style, data-*, …)
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
 }
+

@@ -20,8 +20,8 @@ public class CatalogReadService : ICatalogReadService
     {
         var slides = new List<SlideDto>
         {
-            new("/uploads/banners/hero1.jpg", "/product/x1", "پروموشن ۱"),
-            new("/uploads/banners/hero2.jpg", "/product/x2", "پروموشن ۲"),
+            new("/uploads/banners/hero1.png", "/product/x1", "پروموشن ۱"),
+            new("/uploads/banners/hero2.png", "/product/x2", "پروموشن ۲"),
         };
         return Task.FromResult(slides.AsEnumerable());
     }

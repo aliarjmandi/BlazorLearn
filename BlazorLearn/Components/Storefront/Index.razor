@@ -1,32 +1,40 @@
 ﻿@page "/store"
-
 @using BlazorLearn.Data.DTOs
-@inject BlazorLearn.Services.Abstractions.ICatalogReadService Catalog
+@inject ICatalogReadService Catalog
 
-<!-- Slider -->
-<Components.Storefront.HeroSlider Slides="slides" />
-
-<!-- Categories -->
-<Components.Storefront.CategoryStrip Items="categories" CssClass="mt-3" />
-
-<!-- Products -->
-<section class="mt-4">
-    <div class="d-flex align-items-center mb-2">
-        <h5 class="m-0">محصولات پیشنهادی</h5>
-        <a class="ms-auto small text-secondary" href="/category/featured">مشاهده همه</a>
+<div class="sf-container mt-3">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h5 class="m-0 fw-bold">فروشگاه</h5>
+        <MegaMenu />
     </div>
-    <Components.Storefront.ProductsGrid Items="products" />
-</section>
+
+    <!-- اسلایدر -->
+    <HeroSlider Slides="slides" CssClass="mb-3" />
+
+    <!-- محصولات -->
+    <section class="mt-4">
+        <div class="d-flex align-items-center mb-2">
+            <h5 class="m-0">محصولات پیشنهادی</h5>
+            <a class="ms-auto small text-secondary" href="/category/featured">مشاهده همه</a>
+        </div>
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var p in products)
+            {
+                <div class="col">
+                    <ProductCard Item="p" />
+                </div>
+            }
+        </div>
+    </section>
+</div>
 
 @code {
     private List<SlideDto> slides = new();
-    private List<CategoryDto> categories = new();
     private List<ProductDto> products = new();
 
     protected override async Task OnInitializedAsync()
     {
-        slides = (await Catalog.GetSlidesAsync()).ToList();
-        categories = (await Catalog.GetCategoriesAsync()).ToList();
-        products = (await Catalog.GetFeaturedProductsAsync(12)).ToList();
+        slides    = (await Catalog.GetSlidesAsync()).ToList();
+        products  = (await Catalog.GetFeaturedProductsAsync(12)).ToList();
     }
 }

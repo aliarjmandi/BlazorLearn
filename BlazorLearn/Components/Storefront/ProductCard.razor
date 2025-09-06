@@ -1,7 +1,7 @@
 ﻿@namespace Components.Storefront
 @using BlazorLearn.Data.DTOs
 
-<div class="sf-prod-card bg-white border rounded-3 h-100 d-flex flex-column">
+<div class="sf-prod-card bg-white border rounded-3 h-100 d-flex flex-column @CssClass">
     <a href="@($"/product/{Item.Slug}")" class="text-reset">
         <div class="ratio ratio-1x1 rounded-top-3 overflow-hidden">
             <img src="@(string.IsNullOrWhiteSpace(Item.FirstImageUrl) ? "/images/placeholder-product.png" : Item.FirstImageUrl)"
@@ -33,5 +33,7 @@
 
 @code {
     [Parameter] public ProductDto Item { get; set; } = default!;
+    [Parameter] public string? CssClass { get; set; }
+
     static string FinalPrice(long v) => v.ToString("#,0");
 }

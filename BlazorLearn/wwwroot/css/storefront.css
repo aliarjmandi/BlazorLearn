@@ -84,3 +84,171 @@
         height: 40px;
         object-fit: cover;
     }
+
+/* ===== Mega menu ===== */
+/* ===== Mega menu ===== */
+.sf-mega {
+    position: relative;
+    display: inline-block
+}
+
+.sf-mega__btn {
+    display: flex;
+    align-items: center;
+    gap: .5rem
+}
+
+/* همیشه فلکس؛ با opacity پنهان می‌شود */
+.sf-mega__panel {
+    position: absolute;
+    inset-inline-start: 0;
+    top: 100%;
+    width: min(980px,95vw);
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: .75rem;
+    margin-top: .5rem;
+    display: flex;
+    box-shadow: 0 10px 30px rgba(0,0,0,.08);
+    direction: rtl;
+    z-index: 1055;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(8px);
+    transition: opacity .15s ease, transform .15s ease, visibility 0s linear .15s;
+}
+
+    .sf-mega__panel.show {
+        opacity: 1;
+        visibility: visible;
+        transform: none;
+        transition-delay: 0s;
+    }
+
+.sf-mega__roots {
+    width: 260px;
+    border-inline-end: 1px solid #f0f0f0;
+    padding: .25rem;
+    overflow: auto;
+    max-height: 60vh
+}
+
+.sf-mega__root {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    padding: .5rem .75rem;
+    border-radius: .5rem;
+    cursor: pointer
+}
+
+    .sf-mega__root:hover, .sf-mega__root.active {
+        background: #f8fafc
+    }
+
+.sf-mega__root-icon {
+    width: 24px;
+    display: inline-grid;
+    place-items: center;
+    color: #64748b
+}
+
+.sf-mega__col {
+    flex: 1;
+    padding: 1rem;
+    max-height: 60vh;
+    overflow: auto
+}
+
+.sf-mega__header {
+    display: flex;
+    justify-content: flex-start;
+    margin-bottom: .75rem
+}
+
+.sf-mega__all {
+    font-weight: 600;
+    color: #0d6efd;
+    text-decoration: none
+}
+
+.sf-mega__groups {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 1rem
+}
+
+.sf-mega__group-title {
+    font-weight: 700;
+    text-decoration: none;
+    color: #111827
+}
+
+.sf-mega__links {
+    list-style: none;
+    padding: 0;
+    margin: .5rem 0 0 0;
+    display: grid;
+    gap: .25rem
+}
+
+    .sf-mega__links a {
+        color: #334155;
+        text-decoration: none
+    }
+
+        .sf-mega__links a:hover {
+            color: #0d6efd
+        }
+
+@media (max-width: 768px) {
+    .sf-mega__panel {
+        position: fixed;
+        inset: 0 auto auto 0;
+        width: 100%;
+        height: 80vh;
+        border-radius: 0
+    }
+
+    .sf-mega__groups {
+        grid-template-columns: repeat(2,minmax(0,1fr))
+    }
+}
+
+
+/* ===== Product card sizing ===== */
+/* ===== Product card sizing (یکدست) ===== */
+.sf-prod-card {
+    display: flex;
+    flex-direction: column;
+    height: 100%
+}
+
+    .sf-prod-card .ratio {
+        aspect-ratio: 1/1
+    }
+
+    .sf-prod-card img {
+        object-fit: contain
+    }
+
+    .sf-prod-card .title,
+    .sf-prod-card .small.text-truncate-2 {
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        min-height: 2.8em;
+    }
+
+    .sf-prod-card .price-row {
+        min-height: 2.2rem;
+        display: flex;
+        align-items: center;
+        gap: .5rem
+    }
+
+    .sf-prod-card .actions {
+        margin-top: auto
+    }
+
