@@ -1,16 +1,9 @@
-﻿@using BlazorLearn.Components.Storefront
-@* اگر Namespace دیگر است، از using مناسب استفاده کن *@
+﻿<header class="sf-header py-2">
+    <div class="sf-container d-flex align-items-center gap-3">
+        <a class="brand text-dark text-decoration-none" href="/store">فروشگاه</a>
 
-<header class="sf-header">
-    <div class="sf-container d-flex align-items-center gap-3 py-2">
+        <MegaMenu Class="ms-2" />
 
-        <!-- برند/لوگو -->
-        <a href="/" class="brand text-decoration-none text-dark ms-auto">فروشگاه</a>
-
-        <!-- منوی همبرگری (بازشو از سمت راست) -->
-        <MegaMenu CssClass="ms-2" />
-
-        <!-- ورود/ثبت‌نام -->
-        <a class="btn btn-primary" href="/account/login">ثبت‌نام / ورود</a>
+        <a class="btn btn-primary ms-auto" href="/account/login">ثبت‌نام / ورود</a>
     </div>
 </header>

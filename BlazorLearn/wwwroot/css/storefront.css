@@ -86,65 +86,77 @@
     }
 
 /* ===== Mega menu ===== */
-/* ===== Mega menu ===== */
+/* ===== Mega menu (RTL, anchor to RIGHT) ===== */
 .sf-mega {
-    position: relative;
-    display: inline-block
+    position: relative; /* مرجع absolute برای پنل */
+    display: inline-block;
 }
 
 .sf-mega__btn {
     display: flex;
     align-items: center;
-    gap: .5rem
+    gap: .5rem;
 }
 
-/* همیشه فلکس؛ با opacity پنهان می‌شود */
-/* پنل منو از سمت راست باز شود */
+/* پنل پایه */
 .sf-mega__panel {
     position: absolute;
-    inset-inline-end: 0; /* ← قبلاً inset-inline-start:0 بود */
     top: 100%;
+    left: auto; /* پیشگیری از هم‌پوشانی با start */
+    right: 0; /* پیش‌فرض: از سمت راست بچسبد */
     width: min(980px,95vw);
     background: #fff;
     border: 1px solid #e5e7eb;
-    border-radius: .75rem 0 0 .75rem;
+    border-radius: .75rem;
     margin-top: .5rem;
     display: none;
     box-shadow: 0 10px 30px rgba(0,0,0,.08);
     direction: rtl;
-    z-index: 40
-}
-.sf-mega__panel {
-    outline: 2px dashed red;
+    z-index: 1050; /* بالاتر از کاروسل/اسلایدر */
+    overflow: hidden;
 }
 
-/* نمایش با Hover روی کل باکس */
-.sf-mega:hover .sf-mega__panel {
-    display: flex
+/* اگر لازم داشتی از چپ بچسبد، به جای کلاس پایین، right را صفر کن */
+.sf-mega--right .sf-mega__panel {
+    right: 0 !important;
+    left: auto !important;
 }
 
-    .sf-mega__panel.show {
-        opacity: 1;
-        visibility: visible;
-        transform: none;
-        transition-delay: 0s;
+/* نمایش با کلاس show یا hover (دسکتاپ) */
+.sf-mega__panel.show {
+    display: flex;
+}
+
+@media (hover:hover) {
+    .sf-mega:hover .sf-mega__panel {
+        display: flex;
     }
+}
 
+/* ستون‌ها */
 .sf-mega__roots {
     width: 260px;
-    border-inline-end: 1px solid #f0f0f0;
     padding: .25rem;
     overflow: auto;
-    max-height: 60vh
+    max-height: 60vh;
+    border-inline-start: 1px solid #f0f0f0;
 }
 
+.sf-mega__col {
+    flex: 1;
+    padding: 1rem;
+    max-height: 60vh;
+    overflow: auto
+}
+
+/* آیتم ریشه */
 .sf-mega__root {
     display: flex;
     align-items: center;
     gap: .5rem;
     padding: .5rem .75rem;
     border-radius: .5rem;
-    cursor: pointer
+    cursor: pointer;
 }
 
     .sf-mega__root:hover, .sf-mega__root.active {
@@ -158,35 +170,17 @@
     color: #64748b
 }
 
-.sf-mega__col {
-    flex: 1;
-    padding: 1rem;
-    max-height: 60vh;
-    overflow: auto
-}
-
-.sf-mega__header {
-    display: flex;
-    justify-content: flex-start;
-    margin-bottom: .75rem
-}
-
-.sf-mega__all {
-    font-weight: 600;
-    color: #0d6efd;
-    text-decoration: none
-}
-
+/* گروه‌ها */
 .sf-mega__groups {
     display: grid;
-    grid-template-columns: repeat(3,minmax(0,1fr));
-    gap: 1rem
+    gap: 1rem;
+    grid-template-columns: repeat(3,minmax(0,1fr))
 }
 
 .sf-mega__group-title {
     font-weight: 700;
-    text-decoration: none;
-    color: #111827
+    color: #111827;
+    text-decoration: none
 }
 
 .sf-mega__links {
@@ -206,10 +200,13 @@
             color: #0d6efd
         }
 
-@media (max-width: 768px) {
+/* موبایل: تمام‌صفحه از بالا */
+@media (max-width:768px) {
     .sf-mega__panel {
         position: fixed;
-        inset: 0 auto auto 0;
+        right: 0;
+        left: 0;
+        top: calc(56px + .5rem);
         width: 100%;
         height: 80vh;
         border-radius: 0
@@ -220,74 +217,9 @@
     }
 }
 
-
-/* ===== Product card sizing (یکدست) ===== */
-.sf-prod-card {
-    display: flex;
-    flex-direction: column;
-    height: 100%
-}
-
-    .sf-prod-card .ratio {
-        aspect-ratio: 1/1
-    }
-
-    .sf-prod-card img {
-        object-fit: contain
-    }
-
-    .sf-prod-card .title,
-    .sf-prod-card .small.text-truncate-2 {
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
-        min-height: 2.8em;
-    }
-
-    .sf-prod-card .price-row {
-        min-height: 2.2rem;
-        display: flex;
-        align-items: center;
-        gap: .5rem
-    }
-
-    .sf-prod-card .actions {
-        margin-top: auto
-    }
-
-
-/* هدر بالای همه لایه‌ها و قابل Hover */
+/* هدر بالاتر از همه لایه‌ها (زیرش پنل قطع نشود) */
 .sf-header {
     position: sticky;
     top: 0;
-    z-index: 1000;
-}
-
-/* ریشه‌ی مگا منو راست‌چین شود */
-.sf-mega {
-    position: relative;
-}
-
-.sf-mega--right .sf-mega__panel {
-    inset-inline-end: 0; /* راست */
-    inset-inline-start: auto; /* چپ آزاد */
-}
-
-/* باز شدن خودکار با Hover روی بلاک مگا منو */
-@media (hover:hover) {
-    .sf-mega:hover .sf-mega__panel {
-        display: flex;
-    }
-}
-
-/* در موبایل Hover نداریم: فقط با کلاس show باز می‌شود */
-@media (hover:none) {
-    .sf-mega__panel {
-        display: none;
-    }
-
-        .sf-mega__panel.show {
-            display: flex;
-        }
+    z-index: 1000
 }

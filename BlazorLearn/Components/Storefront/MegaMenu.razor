@@ -1,22 +1,24 @@
 ﻿@using BlazorLearn.Data.DTOs
+
+@rendermode InteractiveServer
 @inject ICatalogReadService Catalog
 
-<div class="sf-mega sf-mega--right @CssClass">
+<div class="@RootCss" @attributes="AdditionalAttributes">
     <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-            @onclick="ToggleMenu"
-            @onmouseenter="OpenOnHover">
-        <i class="bi bi-list"></i>
-        دسته‌بندی‌ها
+            @onclick="ToggleMenu" @onmouseenter="OpenOnHover">
+        <i class="bi bi-list"></i> دسته‌بندی‌ها
     </button>
 
+
     <div class="sf-mega__panel @(open ? "show" : "")"
-         @onmouseenter="() => open = true"
-         @onmouseleave="() => open = false">
+         @onmouseenter="() => CancelClose()"
+         @onmouseleave="() => CloseWithDelay()">
 
         <div class="sf-mega__roots">
             @foreach (var r in roots)
             {
                 <div class="sf-mega__root @(activeRoot?.Id == r.Id ? "active" : "")"
+                     title="@r.Name"
                      @onmouseenter="() => SetActive(r)">
                     <span class="sf-mega__root-icon"><i class="bi bi-grid-3x3-gap"></i></span>
                     <span class="sf-mega__root-text text-truncate">@r.Name</span>
@@ -30,8 +32,7 @@
             {
                 <div class="sf-mega__header">
                     <a class="sf-mega__all" href="@($"/category/{activeRoot.Slug}")">
-                        مشاهده دسته «@activeRoot.Name»
-                        <i class="bi bi-arrow-left-short"></i>
+                        مشاهده دسته «@activeRoot.Name» <i class="bi bi-arrow-left-short"></i>
                     </a>
                 </div>
 
@@ -43,11 +44,14 @@
                             <ul class="sf-mega__links">
                                 @foreach (var g in ch.Children)
                                 {
-                                    <li><a href="@($"/category/{g.Slug}")">@g.Name</a></li>
+                                    <li>
+                                        <a href="@($"/category/{g.Slug}")">@g.Name</a>
+                                    </li>
                                 }
                             </ul>
                         </div>
                     }
+
                 </div>
             }
         </div>
@@ -55,7 +59,38 @@
 </div>
 
 @code {
-    [Parameter] public string? CssClass { get; set; }   // ← پارامتر کلاس سفارشی
+    [Parameter] public string? Class { get; set; }
+
+    // برای پذیرش هر Attribute اضافه (مثل class, style, id, ...)
+    [Parameter(CaptureUnmatchedValues = true)]
+    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+
+    // اگر فلگ راست‌چین بودن پنل را می‌خواهید قابل کنترل باشد
+    [Parameter] public bool RightAlign { get; set; } = true;
+
+    // ترکیب کلاس‌ها: پایه + راست‌چین (اختیاری) + Class + کلاس‌های گذری از AdditionalAttributes
+    private string RootCss
+    {
+        get
+        {
+            var list = new List<string> { "sf-mega" };
+            if (RightAlign) list.Add("sf-mega--right");
+
+            if (!string.IsNullOrWhiteSpace(Class))
+                list.Add(Class!);
+
+            if (AdditionalAttributes != null &&
+                AdditionalAttributes.TryGetValue("class", out var clsObj) &&
+                clsObj is string cls && !string.IsNullOrWhiteSpace(cls))
+            {
+                list.Add(cls);
+            }
+
+            return string.Join(" ", list);
+        }
+    }
+
+
 
     class CatNode
     {
@@ -72,16 +107,23 @@
 
     protected override async Task OnInitializedAsync()
     {
-        var flat = (await Catalog.GetCategoriesAsync())
-            .Select(c => new CatNode { Id = c.Id, Name = c.Name, Slug = c.Slug, ParentId = c.ParentId })
-            .ToList();
+        // نکته اصلی: همه‌ی دسته‌ها را بگیر
+        var flat = (await Catalog.GetAllCategoriesAsync())
+                 .Select(c => new CatNode { Id = c.Id, Name = c.Name, Slug = c.Slug, ParentId = c.ParentId })
+                 .ToList();
 
+        // ساخت درخت
         var dict = flat.ToDictionary(x => x.Id);
         foreach (var n in flat)
             if (n.ParentId is Guid p && dict.TryGetValue(p, out var parent))
                 parent.Children.Add(n);
 
-        roots = flat.Where(x => x.ParentId == null).OrderBy(x => x.Name).ToList();
+        // ریشه‌ها
+        roots = flat.Where(x => x.ParentId == null)
+                    .OrderBy(x => x.Name)
+                    .ToList();
+
+        // مرتب‌سازی فرزندان
         foreach (var r in roots)
         {
             r.Children = r.Children.OrderBy(x => x.Name).ToList();
@@ -89,23 +131,35 @@
                 ch.Children = ch.Children.OrderBy(x => x.Name).ToList();
         }
 
+        // ریشه‌ی فعال پیش‌فرض
         activeRoot = roots.FirstOrDefault();
     }
 
     void ToggleMenu()
     {
-        // موبایل/تاچ
         open = !open;
         if (open && activeRoot is null && roots.Count > 0)
             activeRoot = roots[0];
     }
-
     void OpenOnHover()
     {
-        // دسکتاپ (hover)
         open = true;
         if (activeRoot is null && roots.Count > 0)
             activeRoot = roots[0];
+    }
+
+    // تاخیر کوچک برای خروج موس
+    System.Timers.Timer? _closeTimer;
+    void CancelClose() => _closeTimer?.Stop();
+    void CloseWithDelay()
+    {
+        _closeTimer ??= new System.Timers.Timer(200) { AutoReset = false };
+        _closeTimer.Elapsed += (_, __) =>
+        {
+            open = false;
+            InvokeAsync(StateHasChanged);
+        };
+        _closeTimer.Start();
     }
 
     void SetActive(CatNode r)

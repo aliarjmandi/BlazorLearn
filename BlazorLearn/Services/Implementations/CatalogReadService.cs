@@ -90,4 +90,28 @@ ORDER BY p.CreatedAt DESC;";
         return list;
     }
 
+    // فقط ریشه‌ها (برای کارت‌های لندینگ)
+    public async Task<IEnumerable<CategoryDto>> GetRootCategoriesAsync()
+    {
+        const string sql = @"
+    SELECT c.Id, c.Name, c.Slug, c.SortOrder, c.IsActive, c.ParentId
+    FROM dbo.Categories c
+    WHERE c.ParentId IS NULL AND c.IsActive = 1
+    ORDER BY c.SortOrder, c.Name;";
+        using var conn = GetConnection();
+        return await conn.QueryAsync<CategoryDto>(sql);
+    }
+
+    // همه‌ی دسته‌ها (برای مگا‌منو)
+    public async Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync()
+    {
+        const string sql = @"
+    SELECT c.Id, c.Name, c.Slug, c.SortOrder, c.IsActive, c.ParentId
+    FROM dbo.Categories c
+    WHERE c.IsActive = 1
+    ORDER BY c.SortOrder, c.Name;";
+        using var conn = GetConnection();
+        return await conn.QueryAsync<CategoryDto>(sql);
+    }
+
 }

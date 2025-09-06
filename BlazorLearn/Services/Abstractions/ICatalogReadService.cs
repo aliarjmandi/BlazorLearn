@@ -4,12 +4,9 @@ namespace BlazorLearn.Services.Abstractions;
 
 public interface ICatalogReadService
 {
-    /// اسلایدهای هدر – فعلاً ماک
+    Task<IEnumerable<CategoryDto>> GetRootCategoriesAsync();   // قبلی: فقط ریشه‌ها (برای لندینگ)
+    Task<IEnumerable<CategoryDto>> GetAllCategoriesAsync();    // جدید: همه دسته‌ها برای مگا منو
+
     Task<IEnumerable<SlideDto>> GetSlidesAsync();
-
-    /// فقط دسته‌های ریشه (برای منوی لندینگ)
-    Task<IEnumerable<CategoryDto>> GetCategoriesAsync();
-
-    /// چند محصول پیشنهادی/آخرین‌ها به همراه اولین تصویر
     Task<IEnumerable<ProductDto>> GetFeaturedProductsAsync(int take = 10);
 }
