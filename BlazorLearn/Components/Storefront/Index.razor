@@ -1,16 +1,13 @@
 ﻿@page "/store"
 
 @using BlazorLearn.Data.DTOs
-@using BlazorLearn.Services.Abstractions
-@using Components.Storefront
-@using Components.Storefront.Models
-@inject ICatalogReadService Catalog
+@inject BlazorLearn.Services.Abstractions.ICatalogReadService Catalog
 
 <!-- Slider -->
-<HeroSlider Slides="slides" />
+<Components.Storefront.HeroSlider Slides="slides" />
 
 <!-- Categories -->
-<CategoryStrip Items="categories" CssClass="mt-3" />
+<Components.Storefront.CategoryStrip Items="categories" CssClass="mt-3" />
 
 <!-- Products -->
 <section class="mt-4">
@@ -18,48 +15,18 @@
         <h5 class="m-0">محصولات پیشنهادی</h5>
         <a class="ms-auto small text-secondary" href="/category/featured">مشاهده همه</a>
     </div>
-    <ProductsGrid Items="products" />
+    <Components.Storefront.ProductsGrid Items="products" />
 </section>
 
 @code {
-    // View models موردنیاز کامپوننت‌ها
-    private List<SlideItem> slides = new();
-    private List<CategoryItem> categories = new();
-    private List<ProductItem> products = new();
+    private List<SlideDto> slides = new();
+    private List<CategoryDto> categories = new();
+    private List<ProductDto> products = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // --- اسلایدر (ماک داخل سرویس) ---
-        var slideDtos = await Catalog.GetSlidesAsync();
-        slides = slideDtos.Select(s => new SlideItem
-        {
-            ImageUrl = s.ImageUrl,
-            LinkUrl = s.LinkUrl,
-            Caption = s.Caption
-        }).ToList();
-
-        // --- دسته‌بندی‌های ریشه ---
-        var catDtos = await Catalog.GetCategoriesAsync();
-        categories = catDtos.Select(c => new CategoryItem(
-            Title: c.Name,
-            Href: $"/category/{c.Slug}",
-            // فعلاً آیکون/تصویر نداریم؛ بعداً از DB می‌آید
-            ImageUrl: "/images/cat-placeholder.svg"
-        )).ToList();
-
-        // --- محصولات پیشنهادی ---
-        var proDtos = await Catalog.GetFeaturedProductsAsync(12);
-        products = proDtos.Select(p => new ProductItem
-        {
-            Id = p.Id,
-            Title = p.Name,
-            Href = $"/product/{p.Slug}",
-            ImageUrl = string.IsNullOrWhiteSpace(p.FirstImageUrl)
-                       ? "/images/no-image.svg"      // جایگزین اگر تصویر نداشت
-                       : p.FirstImageUrl,
-            // تبدیل decimal به long برای کامپوننت
-            Price = (long)p.Price,
-            DiscountPercent = p.DiscountPercent
-        }).ToList();
+        slides = (await Catalog.GetSlidesAsync()).ToList();
+        categories = (await Catalog.GetCategoriesAsync()).ToList();
+        products = (await Catalog.GetFeaturedProductsAsync(12)).ToList();
     }
 }

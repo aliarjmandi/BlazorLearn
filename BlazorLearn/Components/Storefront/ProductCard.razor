@@ -1,45 +1,37 @@
-﻿@using Components.Storefront.Models
-@namespace BlazorLearn.Components.Storefront
+﻿@namespace Components.Storefront
+@using BlazorLearn.Data.DTOs
 
 <div class="sf-prod-card bg-white border rounded-3 h-100 d-flex flex-column">
-    <a href="@Item.LinkUrl" class="text-reset">
+    <a href="@($"/product/{Item.Slug}")" class="text-reset">
         <div class="ratio ratio-1x1 rounded-top-3 overflow-hidden">
-            <img src="@Item.ImageUrl" class="w-100 h-100" style="object-fit:cover;" alt="@Item.Title" />
+            <img src="@(string.IsNullOrWhiteSpace(Item.FirstImageUrl) ? "/images/placeholder-product.png" : Item.FirstImageUrl)"
+                 class="w-100 h-100" style="object-fit:cover;" alt="@Item.Name" />
         </div>
         <div class="p-2">
-            <div class="small text-truncate-2 mb-1">@Item.Title</div>
+            <div class="small text-truncate-2 mb-1">@Item.Name</div>
 
-            @if (Item.DiscountPct is > 0)
+            @if (Item.DiscountPercent > 0)
             {
-                var final = Math.Round(Item.Price * (100 - Item.DiscountPct!.Value) / 100m, 0);
+                var final = (long)(Item.Price * (100 - Item.DiscountPercent) / 100m);
                 <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold">@Money(final) تومان</span>
-                    <small class="text-decoration-line-through text-muted">@Money(Item.Price)</small>
-                    <span class="badge bg-danger-subtle text-danger small">@Item.DiscountPct% -</span>
-                </div>
-            }
-            else if (Item.OldPrice is not null)
-            {
-                <div class="d-flex align-items-center gap-2">
-                    <span class="fw-bold">@Money(Item.Price) تومان</span>
-                    <small class="text-decoration-line-through text-muted">@Money(Item.OldPrice!.Value)</small>
+                    <span class="fw-bold">@FinalPrice(final) تومان</span>
+                    <small class="text-decoration-line-through text-muted">@FinalPrice((long)Item.Price)</small>
+                    <span class="badge bg-danger-subtle text-danger small">@Item.DiscountPercent% -</span>
                 </div>
             }
             else
             {
-                <div class="fw-bold">@Money(Item.Price) تومان</div>
+                <div class="fw-bold">@FinalPrice((long)Item.Price) تومان</div>
             }
         </div>
     </a>
 
     <div class="mt-auto p-2">
-        <a href="@Item.LinkUrl" class="btn btn-sm btn-outline-primary w-100">مشاهده</a>
+        <a href="@($"/product/{Item.Slug}")" class="btn btn-sm btn-outline-primary w-100">مشاهده</a>
     </div>
 </div>
 
-
 @code {
-    [Parameter] public ProductItem Item { get; set; } = default!;
-
-    static string Money(decimal v) => v.ToString("#,0");
+    [Parameter] public ProductDto Item { get; set; } = default!;
+    static string FinalPrice(long v) => v.ToString("#,0");
 }

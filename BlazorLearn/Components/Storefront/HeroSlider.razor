@@ -1,31 +1,19 @@
-﻿@using Components.Storefront.Models
-@* UI دلخواه خودت *@
-<div id="hero" class="carousel slide" data-bs-ride="carousel">
-    <div class="carousel-inner">
-        @for (int i = 0; i < (Slides?.Count ?? 0); i++)
+﻿@namespace Components.Storefront
+@using BlazorLearn.Data.DTOs
+
+@if (Slides?.Any() == true)
+{
+    <div class="sf-hero">
+        @* … مارکاپ خودت … *@
+        @foreach (var s in Slides)
         {
-            var s = Slides![i];
-            <div class="carousel-item @(i == 0 ? "active" : null)">
-                <a href="@s.LinkUrl">
-                    <img src="@s.ImageUrl" class="d-block w-100" alt="@s.Caption">
-                </a>
-                @if (!string.IsNullOrWhiteSpace(s.Caption))
-                {
-                    <div class="carousel-caption d-none d-md-block">
-                        <h5>@s.Caption</h5>
-                    </div>
-                }
-            </div>
+            <a href="@s.LinkUrl">
+                <img src="@s.ImageUrl" alt="@s.Caption" />
+            </a>
         }
     </div>
-    <button class="carousel-control-prev" type="button" data-bs-target="#hero" data-bs-slide="prev">
-        <span class="carousel-control-prev-icon"></span>
-    </button>
-    <button class="carousel-control-next" type="button" data-bs-target="#hero" data-bs-slide="next">
-        <span class="carousel-control-next-icon"></span>
-    </button>
-</div>
+}
 
 @code {
-    [Parameter] public List<SlideItem>? Slides { get; set; }
+    [Parameter] public IEnumerable<SlideDto> Slides { get; set; } = Enumerable.Empty<SlideDto>();
 }

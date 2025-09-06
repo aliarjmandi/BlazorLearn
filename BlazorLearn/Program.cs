@@ -133,7 +133,7 @@ using (var scope = app.Services.CreateScope())
 
 
 // مپ اندپوینت‌ها
-app.MapAuthOtpEndpoints(); // using BlazorLearn.Endpoints.Auth;
+//app.MapAuthOtpEndpoints(); // using BlazorLearn.Endpoints.Auth;
 
 // --- Seeding نقش‌ها و (اختیاری) افزودن کاربر به نقش ---
 // اگر متدهای Seed شما خودش CreateScope می‌کند، همین کافی است

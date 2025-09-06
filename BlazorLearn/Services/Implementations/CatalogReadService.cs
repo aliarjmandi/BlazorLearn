@@ -46,6 +46,7 @@ ORDER BY c.SortOrder, c.Name;";
     }
 
     // --- Featured Products ---
+    // Services/Implementations/CatalogReadService.cs
     public async Task<IEnumerable<ProductDto>> GetFeaturedProductsAsync(int take = 10)
     {
         const string sql = @"
@@ -65,14 +66,22 @@ SELECT TOP (@Take)
     p.Description,
     p.IsActive,
     p.CreatedAt,
-    -- اولین تصویر محصول (thumbnail/first)
-    (SELECT TOP 1 i.FilePath
-     FROM dbo.ProductImages i
-     WHERE i.ProductId = p.Id
-     ORDER BY i.SortOrder) AS FirstImageUrl
+    -- اولین تصویر محصول
+    fi.ImageUrl AS FirstImageUrl
 FROM dbo.Products p
 LEFT JOIN dbo.Categories c ON c.Id = p.CategoryId
-LEFT JOIN dbo.Units u ON u.Id = p.UnitId
+LEFT JOIN dbo.Units u      ON u.Id = p.UnitId
+LEFT JOIN (
+    SELECT
+        pi.ProductId,
+        pi.ImageUrl,
+        ROW_NUMBER() OVER (
+            PARTITION BY pi.ProductId
+            ORDER BY pi.SortOrder ASC, pi.CreatedAt ASC
+        ) AS rn
+    FROM dbo.ProductImages pi
+    -- در صورت نیاز شرط فعال بودن را اینجا بگذارید
+) fi ON fi.ProductId = p.Id AND fi.rn = 1
 WHERE p.IsActive = 1
 ORDER BY p.CreatedAt DESC;";
 
@@ -80,4 +89,5 @@ ORDER BY p.CreatedAt DESC;";
         var list = await conn.QueryAsync<ProductDto>(sql, new { Take = take });
         return list;
     }
+
 }

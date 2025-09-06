@@ -1,5 +1,5 @@
-﻿@using Components.Storefront.Models
-@namespace BlazorLearn.Components.Storefront
+﻿@namespace Components.Storefront
+@using BlazorLearn.Data.DTOs
 
 @if (Items?.Count > 0)
 {
@@ -9,9 +9,9 @@
             {
                 <div class="col-6 col-md-3">
                     <a class="sf-cat-card d-flex align-items-center gap-2 p-2 bg-white border rounded-3 text-reset"
-                       href="@c.LinkUrl">
-                        <img src="@c.ImageUrl" alt="@c.Title" width="36" height="36" class="rounded" />
-                        <span class="fw-600">@c.Title</span>
+                       href="@($"/category/{c.Slug}")">
+                        <img src="/images/cat-placeholder.png" alt="@c.Name" width="36" height="36" class="rounded" />
+                        <span class="fw-600">@c.Name</span>
                     </a>
                 </div>
             }
@@ -19,9 +19,7 @@
     </div>
 }
 
-
 @code {
-    // حالا از مدلِ مشترک استفاده می‌کنیم
-    [Parameter] public List<CategoryItem> Items { get; set; } = new();
+    [Parameter] public List<CategoryDto> Items { get; set; } = new();
     [Parameter] public string? CssClass { get; set; }
 }
