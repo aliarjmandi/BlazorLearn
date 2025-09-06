@@ -1,6 +1,7 @@
 ﻿using BlazorLearn.Components;
 using BlazorLearn.Components.Account;                // برای IdentitySeed
 using BlazorLearn.Endpoints.Auth;
+using BlazorLearn.Services.Abstractions;
 using BlazorLearn.Services.Implementations;
 // اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
 using Identity; // (از اسکفولد شما)
@@ -30,12 +31,14 @@ builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UnitService>();
+builder.Services.AddScoped<ICatalogReadService, CatalogReadService>();
+
 
 // برای کشِ In-Memory
 builder.Services.AddMemoryCache();
 
 // سرویس OTP (فعلاً In-Memory)
-builder.Services.AddSingleton<IOtpService, InMemoryOtpService>();
+//builder.Services.AddSingleton<IOtpService, InMemoryOtpService>();
 
 
 builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductImageService>();

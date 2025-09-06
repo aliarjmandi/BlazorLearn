@@ -1,10 +1,12 @@
 ﻿@page "/store"
 
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Abstractions
 @using Components.Storefront
 @using Components.Storefront.Models
+@inject ICatalogReadService Catalog
 
 <!-- Slider -->
-
 <HeroSlider Slides="slides" />
 
 <!-- Categories -->
@@ -20,27 +22,44 @@
 </section>
 
 @code {
-    // Mock data (فعلا)
-    private List<SlideItem> slides = new()
-    {
-        new() { ImageUrl="/uploads/banners/p1.png", LinkUrl="/product/x1", Caption="پروموشن ۱" },
-        new() { ImageUrl="/uploads/banners/p2.png", LinkUrl="/product/x2", Caption="پروموشن ۲" },
-    };
+    // View models موردنیاز کامپوننت‌ها
+    private List<SlideItem> slides = new();
+    private List<CategoryItem> categories = new();
+    private List<ProductItem> products = new();
 
-    private List<CategoryItem> categories = new()
+    protected override async Task OnInitializedAsync()
     {
-        new() { Title="کالای دیجیتال", LinkUrl="/category/digital", ImageUrl="/uploads/cats/digital.png" },
-        new() { Title="مد و پوشاک",   LinkUrl="/category/fashion", ImageUrl="/uploads/cats/fashion.png" },
-        new() { Title="خانه و آشپزخانه", LinkUrl="/category/home", ImageUrl="/uploads/cats/home.png" },
-    };
+        // --- اسلایدر (ماک داخل سرویس) ---
+        var slideDtos = await Catalog.GetSlidesAsync();
+        slides = slideDtos.Select(s => new SlideItem
+        {
+            ImageUrl = s.ImageUrl,
+            LinkUrl = s.LinkUrl,
+            Caption = s.Caption
+        }).ToList();
 
-    private List<ProductItem> products = new()
-    {
-        new() { Id=Guid.NewGuid(), Title="هدفون بی‌سیم X", LinkUrl="/product/p1",
-                ImageUrl="/uploads/products/p1.jpg", Price=1_250_000, OldPrice=1_590_000, DiscountPct=20, InStock=true },
-        new() { Id=Guid.NewGuid(), Title="کتانی مردانه Y", LinkUrl="/product/p2",
-                ImageUrl="/uploads/products/p2.jpg", Price=2_350_000 },
-        new() { Id=Guid.NewGuid(), Title="اتو بخار خانگی", LinkUrl="/product/p3",
-                ImageUrl="/uploads/products/p3.jpg", Price=890_000, OldPrice=990_000, DiscountPct=10 }
-    };
+        // --- دسته‌بندی‌های ریشه ---
+        var catDtos = await Catalog.GetCategoriesAsync();
+        categories = catDtos.Select(c => new CategoryItem(
+            Title: c.Name,
+            Href: $"/category/{c.Slug}",
+            // فعلاً آیکون/تصویر نداریم؛ بعداً از DB می‌آید
+            ImageUrl: "/images/cat-placeholder.svg"
+        )).ToList();
+
+        // --- محصولات پیشنهادی ---
+        var proDtos = await Catalog.GetFeaturedProductsAsync(12);
+        products = proDtos.Select(p => new ProductItem
+        {
+            Id = p.Id,
+            Title = p.Name,
+            Href = $"/product/{p.Slug}",
+            ImageUrl = string.IsNullOrWhiteSpace(p.FirstImageUrl)
+                       ? "/images/no-image.svg"      // جایگزین اگر تصویر نداشت
+                       : p.FirstImageUrl,
+            // تبدیل decimal به long برای کامپوننت
+            Price = (long)p.Price,
+            DiscountPercent = p.DiscountPercent
+        }).ToList();
+    }
 }
