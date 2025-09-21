@@ -23,6 +23,7 @@
 
 	<ItemGroup>
 	  <Content Remove="Components\Admin\Units - Copy.razor" />
+	  <Content Remove="Components\Storefront\__HeroSlider.razor" />
 	</ItemGroup>
 
 

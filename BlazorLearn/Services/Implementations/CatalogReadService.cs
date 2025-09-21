@@ -15,15 +15,19 @@ public class CatalogReadService : ICatalogReadService
     protected SqlConnection GetConnection()
         => new SqlConnection(_config.GetConnectionString("DefaultConnection"));
 
-    // --- Slides (فعلاً ماک) ---
-    public Task<IEnumerable<SlideDto>> GetSlidesAsync()
+    public async Task<IEnumerable<SlideDto>> GetSlidesAsync()
     {
-        var slides = new List<SlideDto>
-        {
-            new("/uploads/banners/hero1.png", "/product/x1", "پروموشن ۱"),
-            new("/uploads/banners/hero2.png", "/product/x2", "پروموشن ۲"),
-        };
-        return Task.FromResult(slides.AsEnumerable());
+        const string sql = @"
+    SELECT Id, Title, Caption, ImageUrl, LinkUrl, SortOrder, IsActive, StartAt, EndAt, CreatedAt
+    FROM dbo.Slides
+    WHERE IsActive = 1
+      AND (StartAt IS NULL OR StartAt <= SYSUTCDATETIME())
+      AND (EndAt   IS NULL OR EndAt   >= SYSUTCDATETIME())
+    ORDER BY SortOrder, CreatedAt DESC;";
+
+        using var db = GetConnection();
+        var rows = await db.QueryAsync<SlideDto>(sql);
+        return rows;
     }
 
     // --- Categories ---

@@ -32,7 +32,8 @@ builder.Services.AddScoped<PersonService>();
 builder.Services.AddScoped<CategoryService>();
 builder.Services.AddScoped<UnitService>();
 builder.Services.AddScoped<ICatalogReadService, CatalogReadService>();
-
+builder.Services.AddScoped<ISlideReadService, SlideService>();
+builder.Services.AddScoped<ISlideWriteService, SlideService>();
 
 // برای کشِ In-Memory
 builder.Services.AddMemoryCache();

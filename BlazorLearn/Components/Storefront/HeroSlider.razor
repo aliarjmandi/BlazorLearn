@@ -1,84 +1,81 @@
 ﻿@using BlazorLearn.Data.DTOs
-@rendermode InteractiveServer
 
-@if (Slides is { } list && list.Any())
+@if (Slides is null)
 {
-    var id = Id ?? $"sfCarousel_{GetHashCode()}";
-    <div id="@id"
-         class="carousel slide @CssClass"
-         data-bs-ride="@(Autoplay ? "carousel" : null)"
-         data-bs-interval="@(Autoplay? IntervalMs : null)"
-         data-bs-wrap="true"
-         @attributes="AdditionalAttributes">
-
-        @* Indicators *@
-        @if (ShowIndicators && list.Count() > 1)
+    <div class="placeholder-glow"><span class="placeholder col-12"></span></div>
+}
+else if (!Slides.Any())
+{
+    <div class="alert alert-info m-0">اسلایدی برای نمایش موجود نیست.</div>
+}
+else
+{
+    <div id="@CarouselId" class="carousel slide @(CssClass ?? "")" data-bs-ride="@(Autoplay ? "carousel" : null)" data-bs-interval="@(Autoplay? IntervalMs : null)">
+        @if (ShowIndicators)
         {
             <div class="carousel-indicators">
-                @foreach (var pair in list.Select((s, i) => (s, i)))
+                @for (var i = 0; i < Slides.Count; i++)
                 {
                     <button type="button"
-                            data-bs-target="#@id"
-                            data-bs-slide-to="@pair.i"
-                            class="@(pair.i == 0 ? "active" : null)"
-                            aria-current="@(pair.i == 0 ? "true" : null)"
-                            aria-label="اسلاید @(pair.i + 1)"></button>
+                            data-bs-target="#@CarouselId"
+                            data-bs-slide-to="@i"
+                            class="@(i == 0 ? "active" : null)"
+                            aria-current="@(i == 0 ? "true" : null)"
+                            aria-label="Slide @(i + 1)"></button>
                 }
             </div>
         }
-
-        <div class="carousel-inner rounded-3 overflow-hidden">
-            @foreach (var pair in list.Select((s, i) => (s, i)))
+        <div class="carousel-inner rounded-4 shadow-sm">
+            @for (var i = 0; i < Slides.Count; i++)
             {
-                <div class="carousel-item @(pair.i == 0 ? "active" : null)">
-                    @if (!string.IsNullOrWhiteSpace(pair.s.LinkUrl))
+                var s = Slides[i];
+                <div class="carousel-item @(i == 0 ? "active" : null)">
+                    <img src="@s.ImageUrl" class="d-block w-100" alt="@s.Title" />
+                    @if (!string.IsNullOrWhiteSpace(s.Title) || !string.IsNullOrWhiteSpace(s.Caption) || !string.IsNullOrWhiteSpace(s.LinkUrl))
                     {
-                        <a href="@pair.s.LinkUrl">
-                            <img src="@pair.s.ImageUrl" class="d-block w-100" alt="@pair.s.Caption">
-                        </a>
-                    }
-                    else
-                    {
-                        <img src="@pair.s.ImageUrl" class="d-block w-100" alt="@pair.s.Caption">
-                    }
-                    @if (!string.IsNullOrWhiteSpace(pair.s.Caption))
-                    {
-                        <div class="carousel-caption d-none d-md-block">
-                            <h5>@pair.s.Caption</h5>
+                        <div class="carousel-caption d-none d-md-block text-start">
+                            @if (!string.IsNullOrWhiteSpace(s.Title))
+                            {
+                                <h5>@s.Title</h5>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(s.Caption))
+                            {
+                                <p>@s.Caption</p>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(s.LinkUrl))
+                            {
+                                <a class="btn btn-primary btn-sm" href="@s.LinkUrl">مشاهده</a>
+                            }
                         </div>
                     }
                 </div>
             }
         </div>
 
-        @* Controls *@
-        @if (ShowControls && list.Count() > 1)
+        @if (ShowControls)
         {
-            <button class="carousel-control-prev" type="button" data-bs-target="#@id" data-bs-slide="prev">
+            <button class="carousel-control-prev" type="button" data-bs-target="#@CarouselId" data-bs-slide="prev">
                 <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">قبلی</span>
+                <span class="visually-hidden">Previous</span>
             </button>
-            <button class="carousel-control-next" type="button" data-bs-target="#@id" data-bs-slide="next">
+            <button class="carousel-control-next" type="button" data-bs-target="#@CarouselId" data-bs-slide="next">
                 <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                <span class="visually-hidden">بعدی</span>
+                <span class="visually-hidden">Next</span>
             </button>
         }
     </div>
 }
 
 @code {
-    [Parameter] public IEnumerable<SlideDto> Slides { get; set; } = Enumerable.Empty<SlideDto>();
+    private string CarouselId { get; } = $"homeCarousel_{Guid.NewGuid():N}";
 
-    // ظاهر و ویژگی‌های اضافی
+    // پارامترها — نکته‌ی اصلی همین [Parameter] هاست
+    [Parameter, EditorRequired]
+    public List<SlideDto>? Slides { get; set; }
+
     [Parameter] public string? CssClass { get; set; }
-    [Parameter(CaptureUnmatchedValues = true)] public Dictionary<string, object>? AdditionalAttributes { get; set; }
-
-    // رفتار
     [Parameter] public bool Autoplay { get; set; } = true;
-    [Parameter] public int IntervalMs { get; set; } = 4000;
+    [Parameter] public int IntervalMs { get; set; } = 5000;
     [Parameter] public bool ShowIndicators { get; set; } = true;
     [Parameter] public bool ShowControls { get; set; } = true;
-
-    // اگر بخواهی اسلایدر چندبار روی صفحه باشد، Id دستی بده
-    [Parameter] public string? Id { get; set; }
 }

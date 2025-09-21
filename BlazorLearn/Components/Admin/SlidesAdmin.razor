@@ -1,0 +1,172 @@
+﻿@page "/admin/slides"
+@using BlazorLearn.Services.Abstractions
+@using Microsoft.AspNetCore.Authorization
+@* @attribute [Authorize(Roles = "Admin")] *@
+@inject ISlideReadService Read
+@inject ISlideWriteService Write
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+
+<h3>اسلایدر‌ صفحه‌ی اصلی</h3>
+
+@if (items is null)
+{
+    <div class="alert alert-info">در حال بارگذاری…</div>
+}
+else
+{
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-primary" @onclick="NewSlide">+ اسلاید جدید</button>
+    </div>
+
+    <table class="table align-middle">
+        <thead>
+            <tr>
+                <th style="width:70px;">ترتیب</th>
+                <th>عنوان</th>
+                <th>تصویر</th>
+                <th>فعال</th>
+                <th style="width:220px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var s in items)
+            {
+                <tr>
+                    <td>
+                        <input type="number" class="form-control form-control-sm" value="@s.SortOrder"
+                               @onchange="e => UpdateSort(s, e.Value?.ToString())" />
+                    </td>
+                    <td>@s.Title</td>
+                    <td><img src="@s.ImageUrl" alt="" style="height:48px;object-fit:cover;border-radius:.5rem" /></td>
+                    <td>
+                        <input type="checkbox" class="form-check-input" checked="@s.IsActive"
+                               @onchange="@(_ => ToggleActive(s))" />
+                    </td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-secondary me-1" @onclick="() => Edit(s)">ویرایش</button>
+                        <button class="btn btn-sm btn-outline-danger" @onclick="() => Remove(s)">حذف</button>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+<EditForm Model="vm" OnValidSubmit="Save" class="card p-3" style="max-width:720px" hidden="@(!showForm)">
+    <DataAnnotationsValidator />
+    <div class="row g-3">
+        <div class="col-md-6">
+            <label class="form-label">عنوان</label>
+            <InputText @bind-Value="vm.Title" class="form-control" />
+        </div>
+        <div class="col-md-6">
+            <label class="form-label">لینک</label>
+            <InputText @bind-Value="vm.LinkUrl" class="form-control" />
+        </div>
+        <div class="col-12">
+            <label class="form-label">متن روی تصویر</label>
+            <InputText @bind-Value="vm.Caption" class="form-control" />
+        </div>
+        <div class="col-md-8">
+            <label class="form-label">تصویر</label>
+            <div class="input-group">
+                <InputText @bind-Value="vm.ImageUrl" class="form-control" placeholder="/uploads/banners/{id}/image.webp" />
+                <button class="btn btn-outline-secondary" type="button" @onclick="PickFile">آپلود…</button>
+            </div>
+            <div class="form-text">فعلاً ساده: مسیر فایل را بده؛ در گام بعد FileStorageService اضافه می‌کنیم.</div>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label">ترتیب</label>
+            <InputNumber @bind-Value="vm.SortOrder" class="form-control" />
+        </div>
+        <div class="col-6">
+            <label class="form-label">شروع نمایش</label>
+            <InputDate @bind-Value="vm.StartAt" class="form-control" />
+        </div>
+        <div class="col-6">
+            <label class="form-label">پایان نمایش</label>
+            <InputDate @bind-Value="vm.EndAt" class="form-control" />
+        </div>
+        <div class="col-12">
+            <div class="form-check">
+                <InputCheckbox @bind-Value="vm.IsActive" class="form-check-input" />
+                <label class="form-check-label">فعال</label>
+            </div>
+        </div>
+    </div>
+    <div class="mt-3 d-flex gap-2">
+        <button class="btn btn-success">ذخیره</button>
+        <button type="button" class="btn btn-light" @onclick="Cancel">انصراف</button>
+    </div>
+</EditForm>
+
+@code {
+    private List<SlideDto>? items;
+    private SlideDto vm = new();
+    private bool showForm;
+
+    protected override async Task OnInitializedAsync()
+    {
+        items = (await Read.GetAllAsync()).ToList();
+    }
+
+    void NewSlide()
+    {
+        vm = new SlideDto { IsActive = true, SortOrder = (items?.Count ?? 0) + 1 };
+        showForm = true;
+    }
+
+    void Edit(SlideDto s)
+    {
+        vm = new SlideDto
+        {
+            Id = s.Id,
+            Title = s.Title,
+            Caption = s.Caption,
+            ImageUrl = s.ImageUrl,
+            LinkUrl = s.LinkUrl,
+            SortOrder = s.SortOrder,
+            IsActive = s.IsActive,
+            StartAt = s.StartAt,
+            EndAt = s.EndAt
+        }; showForm = true;
+    }
+
+    async Task Save()
+    {
+        if (vm.Id == Guid.Empty)
+            vm.Id = await Write.CreateAsync(vm);
+        else
+            await Write.UpdateAsync(vm);
+
+        items = (await Read.GetAllAsync()).ToList();
+        showForm = false;
+        StateHasChanged();
+    }
+
+    async Task Remove(SlideDto s)
+    {
+        if (await Write.DeleteAsync(s.Id))
+            items!.Remove(s);
+    }
+
+    async Task UpdateSort(SlideDto s, string? val)
+    {
+        if (int.TryParse(val, out var sort))
+        {
+            await Write.SetSortAsync(s.Id, sort);
+            s.SortOrder = sort;
+        }
+    }
+
+    async Task ToggleActive(SlideDto s)
+    {
+        s.IsActive = !s.IsActive;
+        await Write.SetActiveAsync(s.Id, s.IsActive);
+    }
+
+    void Cancel() => showForm = false;
+    void PickFile() { /* بعداً: باز کردن دیالوگ آپلود */ }
+}
