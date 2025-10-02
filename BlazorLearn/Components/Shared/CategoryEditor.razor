@@ -1,17 +1,46 @@
-﻿@using BlazorLearn.Data.DTOs
+﻿@rendermode InteractiveServer
+@using BlazorLearn.Data.DTOs
+@using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Components.Web
+
+@inject IFileStorageService Storage
 
 @code {
     [Parameter] public CategoryWriteDto Dto { get; set; } = default!;
     [Parameter] public EventCallback<CategoryWriteDto> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
-    // امضا را با MouseEventArgs هماهنگ می‌کنیم تا ambiguity رفع شود
-    private async Task Save(MouseEventArgs _)
-        => await OnSave.InvokeAsync(Dto);
+    private async Task Save(MouseEventArgs _) => await OnSave.InvokeAsync(Dto);
+    private async Task Cancel(MouseEventArgs _) => await OnCancel.InvokeAsync();
 
-    private async Task Cancel(MouseEventArgs _)
-        => await OnCancel.InvokeAsync();
+    // --- آپلود ---
+    private async Task OnIconFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File; if (file is null) return;
+        EnsureId();
+        var ext = Path.GetExtension(file.Name);
+        var relativePath = $"uploads/categories/{Dto.Id}/icon{ext}";
+        var saved = await Storage.SaveAsync(file, relativePath);
+        Dto.IconUrl = "/" + saved.Replace("\\", "/");
+        StateHasChanged();
+    }
+
+    private async Task OnImageFileChange(InputFileChangeEventArgs e)
+    {
+        var file = e.File; if (file is null) return;
+        EnsureId();
+        var ext = Path.GetExtension(file.Name);
+        var relativePath = $"uploads/categories/{Dto.Id}/image{ext}";
+        var saved = await Storage.SaveAsync(file, relativePath);
+        Dto.ImageUrl = "/" + saved.Replace("\\", "/");
+        StateHasChanged();
+    }
+
+    private void EnsureId()
+    {
+        if (Dto.Id is null || Dto.Id == Guid.Empty)
+            Dto.Id = Guid.NewGuid();
+    }
 }
 
 <div class="row g-2 align-items-end">
@@ -19,21 +48,56 @@
         <label class="form-label">نام</label>
         <input class="form-control" @bind="Dto.Name" />
     </div>
+
     <div class="col-md-3">
         <label class="form-label">Slug</label>
         <input class="form-control" @bind="Dto.Slug" />
     </div>
+
     <div class="col-md-2">
         <label class="form-label">Sort</label>
         <input type="number" class="form-control" @bind="Dto.SortOrder" />
     </div>
+
     <div class="col-md-2 form-check mt-4">
         <input class="form-check-input" type="checkbox"
                id="@($"active-{Guid.NewGuid()}")" @bind="Dto.IsActive" />
         <label class="form-check-label">Active</label>
     </div>
+
     <div class="col-md-2 d-flex gap-2">
         <button class="btn btn-primary" @onclick="Save">ذخیره</button>
         <button class="btn btn-outline-secondary" @onclick="Cancel">انصراف</button>
+    </div>
+</div>
+
+<!-- آیکن/تصویر -->
+<div class="row g-2 mt-3 align-items-center">
+    <div class="col-md-6">
+        <label class="form-label">آیکن (سطوح ۱/۲)</label>
+        <div class="input-group">
+            <input class="form-control" @bind="Dto.IconUrl" placeholder="/uploads/categories/{id}/icon.svg" />
+            <label for="iconFile" class="btn btn-outline-secondary">آپلود…</label>
+            <InputFile id="iconFile" class="d-none" OnChange="OnIconFileChange"
+                       accept=".svg,.png,.webp,.jpg,.jpeg" />
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Dto.IconUrl))
+        {
+            <img src="@Dto.IconUrl" alt="icon" style="width:36px;height:36px;object-fit:contain;margin-top:.5rem;border:1px solid #e5e7eb;border-radius:.25rem" />
+        }
+    </div>
+
+    <div class="col-md-6">
+        <label class="form-label">تصویر دسته (سطح ۳)</label>
+        <div class="input-group">
+            <input class="form-control" @bind="Dto.ImageUrl" placeholder="/uploads/categories/{id}/image.webp" />
+            <label for="imageFile" class="btn btn-outline-secondary">آپلود…</label>
+            <InputFile id="imageFile" class="d-none" OnChange="OnImageFileChange"
+                       accept=".webp,.png,.jpg,.jpeg,.avif" />
+        </div>
+        @if (!string.IsNullOrWhiteSpace(Dto.ImageUrl))
+        {
+            <img src="@Dto.ImageUrl" alt="image" style="width:80px;height:80px;object-fit:contain;margin-top:.5rem;border:1px solid #e5e7eb;border-radius:.5rem" />
+        }
     </div>
 </div>
