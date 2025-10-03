@@ -47,7 +47,8 @@
 
 	<ItemGroup>
 		<Folder Include="Data\Repositories\" />
-		<Folder Include="Infrastructure\" />
+		<Folder Include="Endpoints\Categories\" />
+		<Folder Include="Endpoints\Products\" />
 		<Folder Include="Migrations\" />
 		<Folder Include="wwwroot\uploads\categories\" />
 		<Folder Include="wwwroot\uploads\products\" />

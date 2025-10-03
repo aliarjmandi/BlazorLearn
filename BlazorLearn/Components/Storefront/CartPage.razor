@@ -1,0 +1,165 @@
+﻿@* Components/Storefront/CartPage.razor *@
+@page "/cart"
+
+@using BlazorLearn.Components.Shared
+@using BlazorLearn.Data.DTOs
+@using BlazorLearn.Services.Abstractions
+@using BlazorLearn.Infrastructure
+@inject ICartService Carts
+@inject ISessionIdProvider SessionId
+@inject AuthenticationStateProvider Auth
+@inject IJSRuntime JS
+@rendermode InteractiveServer
+
+<h4>سبد خرید</h4>
+
+@if (isLoading)
+{
+    <p class="text-muted">در حال بارگذاری…</p>
+}
+else if (items.Count == 0)
+{
+    <div class="alert alert-info">سبد شما خالی است.</div>
+}
+else
+{
+    <div class="table-responsive">
+        <table class="table align-middle">
+            <thead>
+                <tr>
+                    <th>کالا</th>
+                    <th style="width:140px;">تعداد</th>
+                    <th>قیمت واحد</th>
+                    <th>جمع خط</th>
+                    <th style="width:60px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var it in items)
+                {
+                    <tr>
+                        <td>
+                            <div class="d-flex align-items-center gap-2">
+                                <img src="@it.FirstImageUrl" style="width:60px;height:60px;object-fit:cover" />
+                                <div>
+                                    <a href="/product/@it.ProductSlug">@it.ProductName</a>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="input-group input-group-sm" style="width:140px;">
+                                <button class="btn btn-outline-secondary"
+                                        @onclick="() => ChangeQty(it, it.Quantity - 1)">
+                                    -
+                                </button>
+                                <input class="form-control text-center"
+                                       value="@it.Quantity"
+                                       @onchange="e => ChangeQty(it, ToInt(e.Value))" />
+                                <button class="btn btn-outline-secondary"
+                                        @onclick="() => ChangeQty(it, it.Quantity + 1)">
+                                    +
+                                </button>
+                            </div>
+                        </td>
+                        <td>@it.UnitPrice.ToString("#,0") تومان</td>
+                        <td>@it.LineTotal.ToString("#,0") تومان</td>
+                        <td>
+                            <button class="btn btn-sm btn-outline-danger" title="حذف"
+                                    @onclick="() => AskDelete(it)">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                }
+                <tr class="fw-bold">
+                    <td colspan="3" class="text-end">جمع کل:</td>
+                    <td>@total.ToString("#,0") تومان</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="text-end">
+        <a class="btn btn-primary" href="/checkout">ادامه فرآیند خرید</a>
+    </div>
+}
+
+<ConfirmModal ModalId="confirmDeleteProduct"
+              Title="تأیید حذف"
+              ConfirmText="حذف"
+              CancelText="انصراف"
+              OnConfirm="ConfirmDeleteAsync">
+    <Message>
+        @if (toDelete is not null)
+        {
+            <p>حذف «<strong>@toDelete.ProductName</strong>» از سبد خرید؟</p>
+        }
+    </Message>
+</ConfirmModal>
+
+@code
+{
+    private Guid cartId;
+    private bool isLoading = true;
+    private List<CartItemDto> items = new();
+    private decimal total;
+    private CartItemDto? toDelete;
+
+
+    private async Task AskDelete(CartItemDto p)
+    {
+        toDelete = p;
+        await JS.InvokeVoidAsync("modalHelper.show", "confirmDeleteProduct");
+    }
+
+    private async Task ConfirmDeleteAsync()
+    {
+        if (toDelete is null) return;
+        await Carts.RemoveItemAsync(toDelete.Id);
+        toDelete = null;
+        await JS.InvokeVoidAsync("modalHelper.hide", "confirmDeleteProduct");
+        await Load();
+    }
+
+    protected override async Task OnInitializedAsync()
+    {
+        // کاربر لاگین است؟ شناسهٔ او را بخوان؛ وگرنه شناسهٔ سشن
+        var auth = await Auth.GetAuthenticationStateAsync();
+        var userId = auth.User.Identity?.IsAuthenticated == true
+            ? (auth.User.FindFirst("sub")?.Value ?? auth.User.FindFirst("uid")?.Value)
+            : null;
+
+        var sid = userId is null ? SessionId.GetOrCreate() : null;
+
+        // گرفتن/ساخت سبد باز و دریافت شناسهٔ آن
+        cartId = await Carts.GetOrCreateOpenCartAsync(userId, sid);
+
+        await Load();
+    }
+
+    private async Task Load()
+    {
+        isLoading = true;
+        items = (await Carts.GetItemsAsync(cartId)).ToList();
+        total = await Carts.GetCartTotalAsync(cartId);
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private static int ToInt(object? v) =>
+        int.TryParse(v?.ToString(), out var n) ? Math.Max(1, n) : 1;
+
+    private async Task ChangeQty(CartItemDto it, int qty)
+    {
+        qty = Math.Max(1, qty);
+        await Carts.UpdateQuantityAsync(it.Id, qty);
+        await Load();
+    }
+
+    private async Task Remove(CartItemDto it)
+    {
+        await Carts.RemoveItemAsync(it.Id);
+        await Load();
+    }
+}

@@ -1,0 +1,41 @@
+﻿@* Components/Storefront/MiniCart.razor *@
+@using BlazorLearn.Infrastructure
+@using BlazorLearn.Services.Abstractions
+@inject ISessionIdProvider SessionId
+@inject AuthenticationStateProvider Auth
+@inject ICartService Carts
+
+<a href="/cart" class="position-relative text-decoration-none">
+    <i class="bi bi-bag"></i>
+    @if (count > 0)
+    {
+        <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">@count</span>
+    }
+</a>
+
+@code {
+    private int count;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await Auth.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        // گرفتن userId در صورت لاگین بودن
+        var userId = user.Identity?.IsAuthenticated == true
+            ? user.FindFirst("sub")?.Value ?? user.FindFirst("uid")?.Value
+            : null;
+
+        // اگر لاگین نباشه sessionId می‌سازیم
+        var sid = userId is null ? SessionId.GetOrCreate() : null;
+
+        // گرفتن یا ساختن cartId
+        var cartId = await Carts.GetOrCreateOpenCartAsync(userId, sid);
+
+        // گرفتن آیتم‌ها
+        var items = await Carts.GetItemsAsync(cartId);
+
+        // محاسبه مجموع تعداد
+        count = items.Sum(i => i.Quantity);
+    }
+}

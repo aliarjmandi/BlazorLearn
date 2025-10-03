@@ -1,0 +1,49 @@
+﻿@using BlazorLearn.Services.Abstractions
+@using BlazorLearn.Infrastructure
+@inject ICartService Carts
+@inject ISessionIdProvider SessionId
+@inject AuthenticationStateProvider Auth
+
+<button class="@CssClass" disabled="@busy" @onclick="OnAdd">
+    @if (busy)
+    {
+        <span class="spinner-border spinner-border-sm me-1"></span>
+    }
+    @ButtonText
+</button>
+
+@code {
+    [Parameter] public Guid ProductId { get; set; }
+    [Parameter] public int Quantity { get; set; } = 1;
+    [Parameter] public string CssClass { get; set; } = "btn btn-primary btn-sm";
+    [Parameter] public string ButtonText { get; set; } = "افزودن به سبد";
+    [Parameter] public EventCallback OnDone { get; set; }  // برای ریفرش مینی‌کارت اگر لازم شد
+
+    private bool busy;
+
+    private async Task OnAdd()
+    {
+        if (busy) return;
+        busy = true;
+        try
+        {
+            var state = await Auth.GetAuthenticationStateAsync();
+            string? userId = state.User.Identity?.IsAuthenticated == true
+                ? (state.User.FindFirst("sub")?.Value ?? state.User.FindFirst("uid")?.Value)
+                : null;
+
+            // برای مهمان‌ها: از Provider فقط بخوان (Middleware کوکی sid را ست کرده)
+            string? sessionId = userId is null ? (SessionId.Get() ?? SessionId.GetOrCreate()) : null;
+
+            // ⭐️ امضای جدید: productId, quantity, cartId:null, userId, sessionId
+            await Carts.AddItemAsync(ProductId, Quantity, null, userId, sessionId);
+
+            if (OnDone.HasDelegate)
+                await OnDone.InvokeAsync();
+        }
+        finally
+        {
+            busy = false;
+        }
+    }
+}

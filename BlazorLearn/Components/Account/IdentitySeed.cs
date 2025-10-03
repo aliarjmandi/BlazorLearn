@@ -31,7 +31,7 @@ public static class IdentitySeed
             await userManager.CreateAsync(user, "YourStrongPassword123!");
             await userManager.AddToRoleAsync(user, "Admin");
         }
-        */
+        
 
         using var scope = services.CreateScope();
         var userMgr = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
@@ -40,11 +40,12 @@ public static class IdentitySeed
         if (!await roleMgr.RoleExistsAsync(role))
             throw new InvalidOperationException($"Role '{role}' does not exist. Seed roles first.");
 
-        var user = await userMgr.FindByEmailAsync(email);
-        if (user is null) throw new InvalidOperationException($"User '{email}' not found.");
+        var userRole = await userMgr.FindByEmailAsync(email);
+        if (userRole is null) throw new InvalidOperationException($"User '{email}' not found.");
 
-        if (!await userMgr.IsInRoleAsync(user, role))
-            await userMgr.AddToRoleAsync(user, role);
+        if (!await userMgr.IsInRoleAsync(userRole, role))
+            await userMgr.AddToRoleAsync(userRole, role);
+        */
     }
 
 }

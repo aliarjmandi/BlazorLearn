@@ -1,6 +1,7 @@
 ﻿using BlazorLearn.Components;
 using BlazorLearn.Components.Account;                // برای IdentitySeed
 using BlazorLearn.Endpoints.Auth;
+using BlazorLearn.Infrastructure;
 using BlazorLearn.Services.Abstractions;
 using BlazorLearn.Services.Implementations;
 // اگر کلاس IdentityNoOpEmailSender در namespace دیگری است، همان را نگه دارید:
@@ -25,6 +26,12 @@ builder.Services.AddDbContext<BlazorLearnContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // سرویس‌های خودتان (Dapper)
+builder.Services.AddHttpContextAccessor();
+
+builder.Services.AddHttpContextAccessor();
+builder.Services.AddScoped<ISessionIdProvider, SessionIdProvider>();
+builder.Services.AddScoped<ICartService, CartService>();
+
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddSingleton<FileStorageService>();
 builder.Services.AddScoped<ProvinceService>();
@@ -35,7 +42,7 @@ builder.Services.AddScoped<UnitService>();
 builder.Services.AddScoped<ICatalogReadService, CatalogReadService>();
 builder.Services.AddScoped<ISlideReadService, SlideService>();
 builder.Services.AddScoped<ISlideWriteService, SlideService>();
-builder.Services.AddScoped<ProductSeeder>();
+//builder.Services.AddScoped<ProductSeeder>();
 
 builder.Services.AddScoped<IDbConnection>(sp =>
 {
@@ -150,7 +157,8 @@ using (var scope = app.Services.CreateScope())
 
 // --- Seeding نقش‌ها و (اختیاری) افزودن کاربر به نقش ---
 // اگر متدهای Seed شما خودش CreateScope می‌کند، همین کافی است
-await IdentitySeed.EnsureRolesAsync(app.Services);
+
+//await IdentitySeed.EnsureRolesAsync(app.Services);
 await IdentitySeed.EnsureUserInRoleAsync(app.Services, "aliarjmandi@yahoo.com", "Admin");
 
 // Pipeline
@@ -165,6 +173,7 @@ app.UseStaticFiles();
 
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseMiddleware<BlazorLearn.Infrastructure.EnsureSessionIdMiddleware>();
 
 // Razor Pages برای UI اسکفولد Identity
 app.MapRazorPages();
