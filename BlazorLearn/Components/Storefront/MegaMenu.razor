@@ -1,170 +1,144 @@
 ﻿@using BlazorLearn.Data.DTOs
-
-@rendermode InteractiveServer
 @inject ICatalogReadService Catalog
 
-<div class="@RootCss" @attributes="AdditionalAttributes">
-    <button class="btn btn-outline-secondary d-inline-flex align-items-center gap-2"
-            @onclick="ToggleMenu" @onmouseenter="OpenOnHover">
+@rendermode InteractiveServer
+
+<div class="bs-mega"
+     @onmouseenter="() => IsOpen = true"
+     @onmouseleave="() => IsOpen = false">
+    <button class="btn btn-light bs-mega__toggler" @onclick="Toggle">
         <i class="bi bi-list"></i> دسته‌بندی‌ها
     </button>
 
+    @if (IsOpen)
+    {
+        <div class="bs-mega__panel shadow-lg">
+            <!-- ریشه‌ها -->
+            <div class="bs-mega__col bs-mega__roots">
+                @foreach (var r in roots)
+                {
+                    var active = (activeRoot?.Id == r.Id);
+                    <button class="bs-mega__item @(active ? "is-active" : "")"
+                            @onmouseenter="() => SetRoot(r)">
+                        @if (!string.IsNullOrWhiteSpace(r.IconUrl))
+                        {
+                            <img class="bs-mega__icon" src="@r.IconUrl" alt="" />
+                        }
+                        else
+                        {
 
-    <div class="sf-mega__panel @(open ? "show" : "")"
-         @onmouseenter="() => CancelClose()"
-         @onmouseleave="() => CloseWithDelay()">
+                            <i class="bi bi-grid-3x3-gap"></i>
+                        }
+                        <span class="text-truncate">@r.Name</span>
+                        <i class="bi bi-chevron-left ms-auto"></i>
+                    </button>
+                }
+            </div>
 
-        <div class="sf-mega__roots">
-            @foreach (var r in roots)
-            {
-                <div class="sf-mega__root @(activeRoot?.Id == r.Id ? "active" : "")"
-                     title="@r.Name"
-                     @onmouseenter="() => SetActive(r)">
-                    <span class="sf-mega__root-icon"><i class="bi bi-grid-3x3-gap"></i></span>
-                    <span class="sf-mega__root-text text-truncate">@r.Name</span>
-                    <i class="bi bi-chevron-left ms-auto"></i>
-                </div>
-            }
-        </div>
+            <!-- سطح ۲ -->
+            <div class="bs-mega__col bs-mega__level2">
+                @foreach (var c in level2)
+                {
+                    var active = (activeL2?.Id == c.Id);
+                    <button class="bs-mega__item @(active ? "is-active" : "")"
+                            @onmouseenter="() => SetL2(c)">
+                        @if (!string.IsNullOrWhiteSpace(c.IconUrl))
+                        {
+                            <img class="bs-mega__icon" src="@c.IconUrl" alt="" />
+                        }
+                        else
+                        {
 
-        <div class="sf-mega__col">
-            @if (activeRoot is not null)
-            {
-                <div class="sf-mega__header">
-                    <a class="sf-mega__all" href="@($"/category/{activeRoot.Slug}")">
-                        مشاهده دسته «@activeRoot.Name» <i class="bi bi-arrow-left-short"></i>
+                            <i class="bi bi-square"></i>
+                        }
+                        <span class="text-truncate">@c.Name</span>
+                        <i class="bi bi-chevron-left ms-auto"></i>
+                    </button>
+                }
+            </div>
+
+            <!-- سطح ۳ -->
+            <div class="bs-mega__col bs-mega__level3">
+                <div class="d-flex align-items-center justify-content-between px-3 py-2">
+                    <a class="small text-primary"
+                       href="/category/@(activeL2?.Slug ?? activeRoot?.Slug)">
+                        مشاهده دسته «@((activeL2?.Name ?? activeRoot?.Name) ?? "…")»
+                        <i class="bi bi-arrow-left-short"></i>
                     </a>
                 </div>
 
-                <div class="sf-mega__groups">
-                    @foreach (var ch in activeRoot.Children)
+                <div class="bs-mega__grid">
+                    @foreach (var s3 in level3)
                     {
-                        <div class="sf-mega__group">
-                            <a class="sf-mega__group-title" href="@($"/category/{ch.Slug}")">@ch.Name</a>
-                            <ul class="sf-mega__links">
-                                @foreach (var g in ch.Children)
+                        <a class="bs-mega__card" href="/category/@s3.Slug" title="@s3.Name">
+                            <div class="bs-mega__thumb">
+                                @if (!string.IsNullOrWhiteSpace(s3.ImageUrl))
                                 {
-                                    <li>
-                                        <a href="@($"/category/{g.Slug}")">@g.Name</a>
-                                    </li>
+                                    <img src="@s3.ImageUrl" alt="@s3.Name" />
                                 }
-                            </ul>
-                        </div>
-                    }
+                                else
+                                {
 
+                                    <div class="bs-mega__thumb--ph"></div>
+                                }
+                            </div>
+                            <div class="bs-mega__card-title text-truncate">@s3.Name</div>
+                        </a>
+                    }
                 </div>
-            }
+            </div>
         </div>
-    </div>
+    }
 </div>
 
 @code {
-    [Parameter] public string? Class { get; set; }
+    private bool IsOpen;
+    private List<CategoryDto> all = new();
+    private List<CategoryDto> roots = new();
+    private List<CategoryDto> level2 = new();
+    private List<CategoryDto> level3 = new();
 
-    // برای پذیرش هر Attribute اضافه (مثل class, style, id, ...)
-    [Parameter(CaptureUnmatchedValues = true)]
-    public Dictionary<string, object>? AdditionalAttributes { get; set; }
+    private CategoryDto? activeRoot;
+    private CategoryDto? activeL2;
 
-    // اگر فلگ راست‌چین بودن پنل را می‌خواهید قابل کنترل باشد
-    [Parameter] public bool RightAlign { get; set; } = true;
-
-    // ترکیب کلاس‌ها: پایه + راست‌چین (اختیاری) + Class + کلاس‌های گذری از AdditionalAttributes
-    private string RootCss
-    {
-        get
-        {
-            var list = new List<string> { "sf-mega" };
-            if (RightAlign) list.Add("sf-mega--right");
-
-            if (!string.IsNullOrWhiteSpace(Class))
-                list.Add(Class!);
-
-            if (AdditionalAttributes != null &&
-                AdditionalAttributes.TryGetValue("class", out var clsObj) &&
-                clsObj is string cls && !string.IsNullOrWhiteSpace(cls))
-            {
-                list.Add(cls);
-            }
-
-            return string.Join(" ", list);
-        }
-    }
-
-
-
-    class CatNode
-    {
-        public Guid Id { get; set; }
-        public string Name { get; set; } = default!;
-        public string Slug { get; set; } = default!;
-        public Guid? ParentId { get; set; }
-        public List<CatNode> Children { get; set; } = new();
-    }
-
-    bool open;
-    List<CatNode> roots = new();
-    CatNode? activeRoot;
+    // Lookup: ParentId -> children
+    private Dictionary<Guid, List<CategoryDto>> byParent = new();
 
     protected override async Task OnInitializedAsync()
     {
-        // نکته اصلی: همه‌ی دسته‌ها را بگیر
-        var flat = (await Catalog.GetAllCategoriesAsync())
-                 .Select(c => new CatNode { Id = c.Id, Name = c.Name, Slug = c.Slug, ParentId = c.ParentId })
-                 .ToList();
+        all = (await Catalog.GetAllCategoriesAsync()).OrderBy(x => x.SortOrder).ToList();
 
-        // ساخت درخت
-        var dict = flat.ToDictionary(x => x.Id);
-        foreach (var n in flat)
-            if (n.ParentId is Guid p && dict.TryGetValue(p, out var parent))
-                parent.Children.Add(n);
+        // گروه‌بندی فرزندان
+        byParent = all
+            .Where(c => c.ParentId.HasValue)
+            .GroupBy(c => c.ParentId!.Value)
+            .ToDictionary(g => g.Key, g => g.OrderBy(x => x.SortOrder).ToList());
 
         // ریشه‌ها
-        roots = flat.Where(x => x.ParentId == null)
-                    .OrderBy(x => x.Name)
-                    .ToList();
+        roots = all.Where(c => c.ParentId == null).OrderBy(c => c.SortOrder).ToList();
 
-        // مرتب‌سازی فرزندان
-        foreach (var r in roots)
+        if (roots.Count > 0)
         {
-            r.Children = r.Children.OrderBy(x => x.Name).ToList();
-            foreach (var ch in r.Children)
-                ch.Children = ch.Children.OrderBy(x => x.Name).ToList();
+            SetRoot(roots[0], fireStateHasChanged: false);
+            if (level2.Count > 0) SetL2(level2[0], fireStateHasChanged: false);
         }
-
-        // ریشه‌ی فعال پیش‌فرض
-        activeRoot = roots.FirstOrDefault();
     }
 
-    void ToggleMenu()
-    {
-        open = !open;
-        if (open && activeRoot is null && roots.Count > 0)
-            activeRoot = roots[0];
-    }
-    void OpenOnHover()
-    {
-        open = true;
-        if (activeRoot is null && roots.Count > 0)
-            activeRoot = roots[0];
-    }
+    private void Toggle() => IsOpen = !IsOpen;
 
-    // تاخیر کوچک برای خروج موس
-    System.Timers.Timer? _closeTimer;
-    void CancelClose() => _closeTimer?.Stop();
-    void CloseWithDelay()
-    {
-        _closeTimer ??= new System.Timers.Timer(200) { AutoReset = false };
-        _closeTimer.Elapsed += (_, __) =>
-        {
-            open = false;
-            InvokeAsync(StateHasChanged);
-        };
-        _closeTimer.Start();
-    }
-
-    void SetActive(CatNode r)
+    private void SetRoot(CategoryDto r, bool fireStateHasChanged = true)
     {
         activeRoot = r;
-        open = true;
+        byParent.TryGetValue(r.Id, out level2);
+        level2 ??= new();
+        if (fireStateHasChanged) StateHasChanged();
+    }
+
+    private void SetL2(CategoryDto c, bool fireStateHasChanged = true)
+    {
+        activeL2 = c;
+        byParent.TryGetValue(c.Id, out level3);
+        level3 ??= new();
+        if (fireStateHasChanged) StateHasChanged();
     }
 }

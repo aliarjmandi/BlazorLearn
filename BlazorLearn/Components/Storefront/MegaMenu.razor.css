@@ -1,0 +1,152 @@
+﻿/* ریشه‌ی کامپوننت */
+.bs-mega {
+    position: relative;
+}
+
+/* دکمهٔ بازکننده */
+.bs-mega__toggler {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+}
+
+/* پنل سه‌ستونه — پهن‌تر شده */
+.bs-mega__panel {
+    position: absolute;
+    top: 100%;
+    inset-inline-start: 0;
+    width: min(1200px, 96vw); /* قبلی ~1020 → بزرگ‌تر شد */
+    background: #fff;
+    border-radius: 14px;
+    overflow: hidden;
+    display: grid;
+    grid-template-columns: 340px 360px 1fr; /* ستون‌های راست/وسط پهن‌تر */
+    z-index: 1000;
+    box-shadow: 0 12px 28px rgba(0,0,0,.12);
+}
+
+/* ستون‌ها و اسکرول */
+.bs-mega__col {
+    max-height: 560px; /* قبلی 520 → بلندتر */
+    overflow: auto;
+    border-inline-end: 1px solid rgba(0,0,0,.06);
+    scrollbar-width: thin;
+}
+
+    .bs-mega__col:last-child {
+        border-inline-end: none;
+    }
+
+    .bs-mega__col::-webkit-scrollbar {
+        height: 8px;
+        width: 8px;
+    }
+
+    .bs-mega__col::-webkit-scrollbar-thumb {
+        background: #d9d9e3;
+        border-radius: 8px;
+    }
+
+/* آیتم‌های سطح ۱ و ۲ */
+.bs-mega__item {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .75rem .9rem; /* کمی بزرگ‌تر */
+    background: transparent;
+    border: 0;
+    text-align: start;
+    font-size: 1rem; /* قبلی .95rem */
+    white-space: nowrap;
+}
+
+    .bs-mega__item:hover {
+        background: #f6f7fb;
+    }
+
+    .bs-mega__item.is-active {
+        background: #eef3ff;
+    }
+
+.bs-mega__icon {
+    width: 24px;
+    height: 24px; /* قبلی 22px */
+    object-fit: contain;
+    flex: 0 0 24px;
+}
+
+/* گرید سطح ۳ */
+.bs-mega__level3 {
+    background: #fafbff;
+}
+
+.bs-mega__grid {
+    padding: .25rem .9rem .9rem;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* قبلی 3 → 4 ستون */
+    gap: .6rem .9rem;
+}
+
+@media (max-width: 1100px) {
+    .bs-mega__panel {
+        grid-template-columns: 300px 320px 1fr;
+    }
+
+    .bs-mega__grid {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* کارت‌ها */
+.bs-mega__card {
+    display: flex;
+    align-items: center;
+    gap: .6rem;
+    padding: .45rem .35rem;
+    border-radius: 10px;
+    text-decoration: none;
+    color: inherit;
+}
+
+    .bs-mega__card:hover {
+        background: #f2f4f8;
+    }
+
+.bs-mega__thumb {
+    width: 64px;
+    height: 64px; /* قبلی 56 → بزرگ‌تر */
+    border-radius: 12px;
+    overflow: hidden;
+    background: #fff;
+    border: 1px solid #eee;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+    .bs-mega__thumb img {
+        width: 100%;
+        height: 100%;
+        object-fit: contain;
+    }
+
+.bs-mega__thumb--ph {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg,#f2f2f2,#fafafa);
+}
+
+.bs-mega__card-title {
+    font-size: 1rem;
+}
+/* متن کارت بزرگ‌تر */
+
+/* هدر ستون چپ */
+.bs-mega__level3 .d-flex a {
+    text-decoration: none;
+}
+
+    .bs-mega__level3 .d-flex a:hover {
+        text-decoration: underline;
+    }

@@ -8,12 +8,12 @@ using Identity; // (از اسکفولد شما)
 using Microsoft.AspNetCore.Components;
 using Microsoft.AspNetCore.Components.Authorization; // برای AuthenticationStateProvider
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 using System.Globalization;
 
 var builder = WebApplication.CreateBuilder(args);
-
-
 
 var fa = CultureInfo.GetCultureInfo("fa-IR");
 CultureInfo.DefaultThreadCurrentCulture = fa;
@@ -25,7 +25,7 @@ builder.Services.AddDbContext<BlazorLearnContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // سرویس‌های خودتان (Dapper)
-builder.Services.AddScoped<FileStorageService>();
+builder.Services.AddScoped<IFileStorageService, FileStorageService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
@@ -34,6 +34,16 @@ builder.Services.AddScoped<UnitService>();
 builder.Services.AddScoped<ICatalogReadService, CatalogReadService>();
 builder.Services.AddScoped<ISlideReadService, SlideService>();
 builder.Services.AddScoped<ISlideWriteService, SlideService>();
+
+builder.Services.AddScoped<IDbConnection>(sp =>
+{
+    var cfg = sp.GetRequiredService<IConfiguration>();
+    var cs = cfg.GetConnectionString("DefaultConnection");
+    return new SqlConnection(cs);
+});
+
+builder.Services.AddHttpClient();
+builder.Services.AddScoped<CategorySeeder>();
 
 // برای کشِ In-Memory
 builder.Services.AddMemoryCache();
@@ -165,6 +175,34 @@ app.MapControllers();
 app.UseAntiforgery();
 app.MapRazorComponents<App>()
     .AddInteractiveServerRenderMode();
+
+/*
+
+app.MapPost("/Seeder/Basalam/seed-categories", async (CategorySeeder seeder, IWebHostEnvironment env) =>
+{
+    if (!env.IsDevelopment()) return Results.Forbid();
+    try
+    {
+        await seeder.SeedFromHtmlAsync("wwwroot/menu_final.html", true);
+        return Results.Ok(new { ok = true });
+    }
+    catch (FileNotFoundException ex)
+    {
+        return Results.Problem(
+            title: "menu_final.html not found",
+            detail: ex.FileName,
+            statusCode: StatusCodes.Status404NotFound);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem(
+            title: "Seeder failed",
+            detail: ex.ToString(),
+            statusCode: StatusCodes.Status500InternalServerError);
+    }
+})
+.DisableAntiforgery();
+*/
 
 // Endpoints اضافی‌ای که اسکفولد ساخته (Minimal APIهای Identity)
 app.MapAdditionalIdentityEndpoints();

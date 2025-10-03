@@ -10,18 +10,39 @@
     [Parameter] public EventCallback<CategoryWriteDto> OnSave { get; set; }
     [Parameter] public EventCallback OnCancel { get; set; }
 
-    private async Task Save(MouseEventArgs _) => await OnSave.InvokeAsync(Dto);
+    private async Task Save(MouseEventArgs _)
+    {
+        Dto.IconUrl = NormalizeWebPath(Dto.IconUrl ?? "");
+        Dto.ImageUrl = NormalizeWebPath(Dto.ImageUrl ?? "");
+        await OnSave.InvokeAsync(Dto);
+    }
+
     private async Task Cancel(MouseEventArgs _) => await OnCancel.InvokeAsync();
 
     // --- آپلود ---
+    private static string NormalizeWebPath(string p)
+    {
+        if (string.IsNullOrWhiteSpace(p)) return p;
+        p = p.Replace("\\", "/").Trim();
+        // حذف کوتیشن اشتباهی
+        if (p.StartsWith("'") || p.StartsWith("\"")) p = p[1..];
+        if (p.EndsWith("'") || p.EndsWith("\"")) p = p[..^1];
+        // حذف اسلش‌های اضافی انتها
+        while (p.EndsWith("//")) p = p[..^1];
+        // اضافه کردن اسلش ابتدای مسیر نسبی
+        if (!p.StartsWith("http", StringComparison.OrdinalIgnoreCase) && !p.StartsWith("/"))
+            p = "/" + p;
+        return p;
+    }
+
     private async Task OnIconFileChange(InputFileChangeEventArgs e)
     {
         var file = e.File; if (file is null) return;
         EnsureId();
         var ext = Path.GetExtension(file.Name);
-        var relativePath = $"uploads/categories/{Dto.Id}/icon{ext}";
-        var saved = await Storage.SaveAsync(file, relativePath);
-        Dto.IconUrl = "/" + saved.Replace("\\", "/");
+        var rel = $"uploads/categories/{Dto.Id}/icon{ext.ToLowerInvariant()}";
+        var saved = await Storage.SaveAsync(file, rel);
+        Dto.IconUrl = NormalizeWebPath(saved);
         StateHasChanged();
     }
 
@@ -30,11 +51,15 @@
         var file = e.File; if (file is null) return;
         EnsureId();
         var ext = Path.GetExtension(file.Name);
-        var relativePath = $"uploads/categories/{Dto.Id}/image{ext}";
-        var saved = await Storage.SaveAsync(file, relativePath);
-        Dto.ImageUrl = "/" + saved.Replace("\\", "/");
+        var rel = $"uploads/categories/{Dto.Id}/image{ext.ToLowerInvariant()}";
+        var saved = await Storage.SaveAsync(file, rel);
+        Dto.ImageUrl = NormalizeWebPath(saved);
         StateHasChanged();
     }
+
+
+
+
 
     private void EnsureId()
     {

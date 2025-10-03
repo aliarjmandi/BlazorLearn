@@ -31,8 +31,6 @@ namespace BlazorLearn.Services.Implementations
             }
         }
 
-
-
         /// <summary>
         /// حذف یک نود و تمامی زیرشاخه‌ها در یک تراکنش
         /// </summary>
@@ -67,5 +65,36 @@ namespace BlazorLearn.Services.Implementations
             }
         }
 
+        /*
+         *  protected override async Task ValidateBeforeCreateAsync(CategoryWriteDto dto, IDbConnection conn, IDbTransaction? tx)
+    {
+        const string sql = @"
+        SELECT 1
+        FROM dbo.Categories
+        WHERE
+          ((@ParentId IS NULL AND ParentId IS NULL) OR (ParentId = @ParentId))
+          AND Name = @Name;";
+
+        var exists = await conn.ExecuteScalarAsync<int?>(sql, new { dto.ParentId, dto.Name }, tx);
+        if (exists == 1)
+            throw new InvalidOperationException("دسته‌ای با همین نام در همین سطح قبلاً ایجاد شده است.");
+    }
+
+    // اختیاری: اگر برای Update هم دوست داری جلوگیری شود
+    protected override async Task ValidateBeforeUpdateAsync(Guid id, CategoryWriteDto dto, IDbConnection conn, IDbTransaction? tx)
+    {
+        const string sql = @"
+        SELECT 1
+        FROM dbo.Categories
+        WHERE
+          ((@ParentId IS NULL AND ParentId IS NULL) OR (ParentId = @ParentId))
+          AND Name = @Name
+          AND Id <> @Id;";
+
+        var exists = await conn.ExecuteScalarAsync<int?>(sql, new { Id = id, dto.ParentId, dto.Name }, tx);
+        if (exists == 1)
+            throw new InvalidOperationException("نام دسته در این سطح تکراری است.");
+    }
+         */
     }
 }
