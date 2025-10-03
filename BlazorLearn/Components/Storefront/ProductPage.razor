@@ -1,0 +1,124 @@
+﻿@page "/product/{Slug}"
+@using BlazorLearn.Data.DTOs
+@inject ICatalogReadService Catalog
+
+@rendermode InteractiveServer
+
+@if (Model is null)
+{
+    <div class="alert alert-warning">محصولی یافت نشد.</div>
+}
+else
+{
+    <!-- مسیر دسته‌ها -->
+    <nav class="breadcrumb mb-3">
+        <a href="/">خانه</a>
+        @foreach (var cat in CategoryPath)
+        {
+            <span class="mx-1">/</span>
+            <a href="/category/@cat.Slug">@cat.Name</a>
+        }
+        <span class="mx-1">/</span>
+        <span>@Model.Name</span>
+    </nav>
+
+    <div class="row g-4">
+        <!-- بخش اطلاعات اصلی -->
+        <div class="col-md-4">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h4>@Model.Name</h4>
+                    <p class="text-muted">@Model.ShortDescription</p>
+
+                    <h5 class="text-primary fw-bold">
+                        @Model.Price.ToString("N0") تومان
+                    </h5>
+
+                    @if (Model.DiscountPercent > 0)
+                    {
+                        <p class="text-danger small">
+                            تخفیف: @Model.DiscountPercent%
+                        </p>
+                    }
+
+                    <p class="text-muted small">کد کالا: @Model.Sku</p>
+                    <p class="text-muted small">موجودی: @Model.Stock</p>
+                    <p class="text-muted small">واحد: @Model.UnitName</p>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <a class="btn btn-outline-secondary btn-sm"
+                           href="/category/@Model.CategorySlug">
+                            مشاهده دسته
+                        </a>
+                        <button class="btn btn-primary btn-sm">افزودن به سبد (بعدا)</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- گالری تصاویر -->
+        <div class="col-md-8">
+            <div class="text-center mb-3">
+                <img src="@MainImage" class="img-fluid rounded shadow-sm" alt="@Model.Name" />
+            </div>
+            <div class="d-flex gap-2 justify-content-center">
+                @foreach (var img in Images)
+                {
+                    <img src="@img.ImageUrl"
+                         class="img-thumbnail"
+                         style="width:80px; height:80px; cursor:pointer"
+                         @onclick="() => MainImage = img.ImageUrl" />
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- توضیحات -->
+    <section class="mt-4">
+        <h5>توضیحات</h5>
+        <p>@Model.Description</p>
+    </section>
+
+    <!-- محصولات مرتبط -->
+    <section class="mt-4">
+        <div class="d-flex align-items-center mb-2">
+            <h5 class="m-0">کالاهای مرتبط</h5>
+            <a class="ms-auto small text-secondary"
+               href="/category/@Model.CategorySlug">مشاهده همه</a>
+        </div>
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var p in RelatedProducts)
+            {
+                <div class="col">
+                    <ProductCard Item="p" />
+                </div>
+            }
+        </div>
+    </section>
+}
+
+@code {
+    [Parameter] public string Slug { get; set; } = string.Empty;
+
+    private ProductDto? Model;
+    private List<ProductImageDto> Images = new();
+    private string? MainImage;
+    private List<ProductDto> RelatedProducts = new();
+    private List<CategoryDto> CategoryPath = new();
+
+    protected override async Task OnParametersSetAsync()
+    {
+        Model = await Catalog.GetProductBySlugAsync(Slug);
+        if (Model is not null)
+        {
+            Images = (await Catalog.GetProductImagesAsync(Model.Id)).ToList();
+            MainImage = Images.FirstOrDefault()?.ImageUrl;
+
+            RelatedProducts = (await Catalog.GetProductsByCategoryAsync(Model.CategoryId, 8))
+                                .Where(p => p.Id != Model.Id)
+                                .ToList();
+
+            CategoryPath = await Catalog.GetCategoryPathAsync(Model.CategoryId);
+        }
+    }
+}

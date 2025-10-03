@@ -1,0 +1,114 @@
+﻿@page "/category/{slug}"
+@using BlazorLearn.Data.DTOs
+@inject BlazorLearn.Services.Abstractions.ICatalogReadService Catalog
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<div class="sf-container mt-3">
+    <div class="d-flex align-items-center gap-2 mb-3">
+        <h5 class="m-0">نتایج برای: <span class="text-primary">@slug</span></h5>
+
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <label class="small text-muted">مرتب‌سازی:</label>
+            <select class="form-select form-select-sm" style="width: 180px" @onchange="OnSortChanged">
+                <option value="new" selected="@("new" == sort)">جدیدترین</option>
+                <option value="priceAsc" selected="@("priceasc" == sort)">ارزان‌ترین</option>
+                <option value="priceDesc" selected="@("pricedesc" == sort)">گران‌ترین</option>
+                <option value="name" selected="@("name" == sort)">نام</option>
+            </select>
+
+            <label class="small text-muted ms-2">در هر صفحه:</label>
+            <select class="form-select form-select-sm" style="width: 90px" @onchange="OnPageSizeChanged">
+                <option value="12" selected="@(pageSize == 12)">12</option>
+                <option value="24" selected="@(pageSize == 24)">24</option>
+                <option value="36" selected="@(pageSize == 36)">36</option>
+                <option value="48" selected="@(pageSize == 48)">48</option>
+            </select>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="alert alert-light">در حال بارگذاری...</div>
+    }
+    else if (!items.Any())
+    {
+        <div class="alert alert-info">محصولی یافت نشد.</div>
+    }
+    else
+    {
+        <div class="small text-muted mb-2">@totalCount کالا</div>
+
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var p in items)
+            {
+                <div class="col">
+                    <ProductCard Item="p" />
+                </div>
+            }
+        </div>
+
+        <nav class="mt-3">
+            <ul class="pagination pagination-sm justify-content-center">
+                <li class="page-item @(page <= 1 ? "disabled" : null)">
+                    <a class="page-link" href="@BuildUrl(page - 1)">قبلی</a>
+                </li>
+
+                @for (var i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == page ? "active" : null)">
+                        <a class="page-link" href="@BuildUrl(i)">@i</a>
+                    </li>
+                }
+
+                <li class="page-item @(page >= totalPages ? "disabled" : null)">
+                    <a class="page-link" href="@BuildUrl(page + 1)">بعدی</a>
+                </li>
+            </ul>
+        </nav>
+    }
+</div>
+
+@code {
+    [Parameter] public string slug { get; set; } = default!;
+
+    [SupplyParameterFromQuery] public int page { get; set; } = 1;
+    [SupplyParameterFromQuery] public string? sort { get; set; } = "new";
+    [SupplyParameterFromQuery] public int pageSize { get; set; } = 24;
+
+    private List<ProductDto> items = new();
+    private int totalCount;
+    private int totalPages => Math.Max(1, (int)Math.Ceiling(totalCount / (double)pageSize));
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+
+        (IEnumerable<ProductDto> list, int total) =
+            await Catalog.GetProductsByCategoryPagedAsync(slug, page, pageSize, sort ?? "new");
+
+        items = list.ToList();
+        totalCount = total;
+        isLoading = false;
+    }
+
+    private void OnSortChanged(ChangeEventArgs e)
+    {
+        sort = e.Value?.ToString()?.ToLowerInvariant() ?? "new";
+        Nav.NavigateTo(BuildUrl(1));
+    }
+
+    private void OnPageSizeChanged(ChangeEventArgs e)
+    {
+        if (int.TryParse(e.Value?.ToString(), out var ps) && ps > 0)
+            pageSize = ps;
+        else
+            pageSize = 24;
+
+        Nav.NavigateTo(BuildUrl(1));
+    }
+
+    private string BuildUrl(int targetPage)
+        => $"/category/{slug}?page={targetPage}&sort={sort}&pageSize={pageSize}";
+}

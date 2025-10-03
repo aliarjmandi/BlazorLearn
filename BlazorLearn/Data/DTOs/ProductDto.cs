@@ -4,16 +4,21 @@ using System.ComponentModel.DataAnnotations;
 namespace BlazorLearn.Data.DTOs
 {
     // خروجی خواندن لیست/جزییات
-    public class ProductDto
+
+    public sealed class ProductDto
     {
         public Guid Id { get; set; }
         public string Sku { get; set; } = default!;
         public string Name { get; set; } = default!;
         public string Slug { get; set; } = default!;
+
         public Guid CategoryId { get; set; }
         public string? CategoryName { get; set; }
+        public string? CategorySlug { get; set; }     // ⬅️ جدید
+
         public Guid UnitId { get; set; }
         public string? UnitName { get; set; }
+
         public decimal Price { get; set; }
         public int DiscountPercent { get; set; }
         public int Stock { get; set; }
@@ -21,13 +26,11 @@ namespace BlazorLearn.Data.DTOs
         public string? Description { get; set; }
         public bool IsActive { get; set; }
         public DateTime CreatedAt { get; set; }
-
-        // ⭐ جدید: آدرس اولین تصویر (thumbnail) اگر موجود باشد
         public string? ThumbnailUrl { get; set; }
-
         public string? FirstImageUrl { get; set; }
-    }
+}
     
+          
 
     // ورودی ایجاد/ویرایش (فرم)
     public class ProductWriteDto

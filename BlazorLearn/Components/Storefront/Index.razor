@@ -4,8 +4,14 @@
 @rendermode InteractiveServer
 
 <div class="sf-container mt-3">
-    <div class="d-flex align-items-center justify-content-between mb-3">
+    <!-- نوار بالای صفحه: مگامنو + جستجو -->
+    <div class="d-flex align-items-center gap-3 mb-3">
+        @* اگر خواستی بعداً فعال کن *@
         @* <MegaMenu /> *@
+
+        <div class="flex-grow-1">
+            <SearchBox CssClass="w-100" />
+        </div>
     </div>
 
     <!-- اسلایدر -->
@@ -16,7 +22,7 @@
                 ShowIndicators="true"
                 ShowControls="true" />
 
-    <!-- محصولات -->
+    <!-- محصولات پیشنهادی -->
     <section class="mt-4">
         <div class="d-flex align-items-center mb-2">
             <h5 class="m-0">محصولات پیشنهادی</h5>

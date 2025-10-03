@@ -1,0 +1,47 @@
+﻿@page "/search/{keyword}"
+@using BlazorLearn.Data.DTOs
+@inject ICatalogReadService Catalog
+@rendermode InteractiveServer
+
+<div class="sf-container mt-3">
+    <div class="d-flex align-items-center gap-3 mb-3">
+        <h5 class="m-0">نتایج جستجو برای: <span class="text-primary">«@keyword»</span></h5>
+        <div class="ms-auto" style="min-width:260px;">
+            <SearchBox CssClass="w-100" Placeholder="جستجوی مجدد..." />
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <p class="text-muted">در حال جستجو...</p>
+    }
+    else if (!results.Any())
+    {
+        <div class="alert alert-info">محصولی یافت نشد.</div>
+    }
+    else
+    {
+        <div class="row g-3 row-cols-2 row-cols-md-3 row-cols-lg-4">
+            @foreach (var p in results)
+            {
+                <div class="col">
+                    <ProductCard Item="p" />
+                </div>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public string keyword { get; set; } = string.Empty;
+
+    private List<ProductDto> results = new();
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        isLoading = true;
+        results = (await Catalog.SearchProductsAsync(keyword, 60)).ToList();
+        isLoading = false;
+    }
+}

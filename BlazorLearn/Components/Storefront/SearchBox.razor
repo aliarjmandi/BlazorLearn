@@ -1,0 +1,103 @@
+﻿@using BlazorLearn.Data.DTOs
+@inject ICatalogReadService Catalog
+@inject NavigationManager Nav
+@rendermode InteractiveServer
+
+<div class="position-relative @CssClass">
+    <input class="form-control"
+           placeholder="@Placeholder"
+           @bind="keyword"
+           @bind:event="oninput"
+           @onkeydown="OnKeyDown"
+           @onblur="OnBlur" />
+
+    @if (showList && suggestions?.Any() == true)
+    {
+        <ul class="list-group position-absolute w-100 mt-1 shadow-sm" style="z-index:1000;">
+            @foreach (var s in suggestions)
+            {
+                <li class="list-group-item list-group-item-action d-flex align-items-center"
+                    @onclick="@(() => GoToProduct(s.Slug))">
+                    <img src="@s.FirstImageUrl" alt="" style="width:40px;height:40px;object-fit:cover" class="rounded me-2" />
+                    <div class="small">
+                        <div class="fw-500">@s.Name</div>
+                        <div class="text-muted">@s.CategoryName</div>
+                    </div>
+                </li>
+            }
+            <li class="list-group-item text-center">
+                <a class="small" href="@BuildSearchUrl(keyword)">نمایش همه نتایج «@keyword»</a>
+            </li>
+        </ul>
+    }
+</div>
+
+@code {
+    [Parameter] public string? CssClass { get; set; }
+    [Parameter] public string Placeholder { get; set; } = "جستجو در فروشگاه...";
+
+    private string keyword = string.Empty;
+    private List<ProductDto>? suggestions;
+    private bool showList;
+    private System.Threading.CancellationTokenSource? cts;
+
+    private async Task DebouncedSearchAsync()
+    {
+        cts?.Cancel();
+        cts = new();
+        var token = cts.Token;
+
+        try
+        {
+            // debounce ~300ms
+            await Task.Delay(300, token);
+            if (string.IsNullOrWhiteSpace(keyword))
+            {
+                suggestions = null;
+                showList = false;
+                StateHasChanged();
+                return;
+            }
+
+            var list = await Catalog.SearchProductsAsync(keyword, 8);
+            suggestions = list.ToList();
+            showList = true;
+            StateHasChanged();
+        }
+        catch (TaskCanceledException) { /* ignore */ }
+    }
+
+    private async Task OnKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && !string.IsNullOrWhiteSpace(keyword))
+        {
+            GoToSearch(keyword);
+            return;
+        }
+
+        // برای سایر کلیدها، سرچ آنی
+        await DebouncedSearchAsync();
+    }
+
+    private void GoToProduct(string slug)
+    {
+        showList = false;
+        Nav.NavigateTo($"/product/{Uri.EscapeDataString(slug)}");
+    }
+
+    private void GoToSearch(string q)
+    {
+        showList = false;
+        Nav.NavigateTo(BuildSearchUrl(q));
+    }
+
+    private string BuildSearchUrl(string q) => $"/search/{Uri.EscapeDataString(q)}";
+
+    private async Task OnBlur(FocusEventArgs _)
+    {
+        // کمی تأخیر تا کلیک روی آیتم‌ها از دست نرود
+        await Task.Delay(150);
+        showList = false;
+        StateHasChanged();
+    }
+}
