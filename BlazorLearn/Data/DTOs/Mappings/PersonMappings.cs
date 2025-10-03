@@ -30,7 +30,7 @@ public static class PersonMappings
             LastName = p.LastName,
             Email = p.Email,
             PhoneNumber = p.PhoneNumber,
-            DateOfBirth = p.DateOfBirth,
+            DateOfBirth = p.DateOfBirth ?? DateTime.MinValue,
             ProvinceName = provinceName,
             CityName = cityName,
             ProfileImagePath = p.ProfileImagePath,

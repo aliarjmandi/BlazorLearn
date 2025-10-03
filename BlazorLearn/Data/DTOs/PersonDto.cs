@@ -35,9 +35,10 @@ namespace BlazorLearn.Data.DTOs
         [Phone, StringLength(20)]
         public string PhoneNumber { get; set; } = string.Empty;
 
-        [Required(ErrorMessage = "تاریخ تولد الزامی است")]
-        [Range(typeof(DateTime), "1900-01-01", "2100-12-31", ErrorMessage = "تاریخ تولد معتبر نیست")]
-        public DateTime DateOfBirth { get; set; }
+        [DataType(DataType.Date)]
+        [DisplayFormat(ApplyFormatInEditMode = true, DataFormatString = "{0:yyyy-MM-dd}")]
+        [DateRangeInvariant("1900-01-01", "2100-12-31", ErrorMessage = "تاریخ تولد نامعتبر است.")]
+        public DateTime? DateOfBirth { get; set; }
 
         [Required, StringLength(12)]
         public string Gender { get; set; } = string.Empty; // Male/Female/Other

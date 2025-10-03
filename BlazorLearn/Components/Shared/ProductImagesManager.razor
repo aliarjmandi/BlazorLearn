@@ -1,7 +1,7 @@
 ﻿@using BlazorLearn.Data.DTOs
 @inject BlazorLearn.Services.Implementations.ProductImageService ImageService
 @inject BlazorLearn.Services.Infra.IFileStorage Storage
-@inject IJSRuntime JS
+@rendermode InteractiveServer
 
 <div class="mb-2 d-flex justify-content-between align-items-center">
     <strong>تصاویر محصول</strong>
@@ -55,54 +55,47 @@ else
         StateHasChanged();
     }
 
-    private int NextOrder() => images.Any() ? images.Max(i => i.SortOrder) + 1 : 0;
-
+    // آپلود چندتایی — ترتیب به صورت خودکار انتهای صف می‌رود (در سرویس)
     private async Task OnFilesSelected(InputFileChangeEventArgs e)
     {
         foreach (var file in e.GetMultipleFiles())
         {
+            // مسیر وب (مثلاً /uploads/products/{pid}/xxxx.ext)
             var rel = await Storage.SaveProductImageAsync(ProductId, file);
+
             var dto = new ProductImageWriteDto
             {
                 ProductId = ProductId,
                 ImageUrl = rel,
-                SortOrder = NextOrder(),
+                // SortOrder عملاً در INSERT نادیده گرفته می‌شود و انتهای صف محاسبه می‌شود
+                SortOrder = 0,
                 IsActive = true,
-                CreatedAt = DateTime.Now
+                CreatedAt = DateTime.UtcNow
             };
+
             await ImageService.CreateAsync(dto);
         }
         await LoadAsync();
     }
 
+    // حذف + حذف فایل + بازشماری (همه داخل سرویس هندل می‌شود)
     private async Task DeleteAsync(ProductImageDto img)
     {
-        await ImageService.DeleteAsync(img.Id);
+        await ImageService.DeleteAndReindexAsync(img.Id, ProductId);
         await Storage.DeleteAsync(img.ImageUrl);
-        //await ImageService.ReindexAsync(ProductId);
         await LoadAsync();
     }
 
+    // حرکت به بالا/پایین (Swap داخلی + بازنویسی SortOrder در سرویس)
     private async Task MoveUp(ProductImageDto img)
     {
-        var siblings = images.OrderBy(x => x.SortOrder).ToList();
-        var idx = siblings.FindIndex(x => x.Id == img.Id);
-        if (idx <= 0) return;
-
-        var prev = siblings[idx - 1];
-        await ImageService.SwapOrderAsync(img.Id, img.SortOrder, prev.Id, prev.SortOrder, img.ProductId);
+        await ImageService.MoveUpAsync(img.Id, ProductId);
         await LoadAsync();
     }
 
     private async Task MoveDown(ProductImageDto img)
     {
-        var siblings = images.OrderBy(x => x.SortOrder).ToList();
-        var idx = siblings.FindIndex(x => x.Id == img.Id);
-        if (idx == -1 || idx >= siblings.Count - 1) return;
-
-        var next = siblings[idx + 1];
-        await ImageService.SwapOrderAsync(img.Id, img.SortOrder, next.Id, next.SortOrder, img.ProductId);
+        await ImageService.MoveDownAsync(img.Id, ProductId);
         await LoadAsync();
     }
-
 }

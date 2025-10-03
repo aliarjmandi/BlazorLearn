@@ -26,6 +26,7 @@ builder.Services.AddDbContext<BlazorLearnContext>(opt =>
 
 // سرویس‌های خودتان (Dapper)
 builder.Services.AddScoped<IFileStorageService, FileStorageService>();
+builder.Services.AddSingleton<FileStorageService>();
 builder.Services.AddScoped<ProvinceService>();
 builder.Services.AddScoped<CityService>();
 builder.Services.AddScoped<PersonService>();
@@ -34,6 +35,7 @@ builder.Services.AddScoped<UnitService>();
 builder.Services.AddScoped<ICatalogReadService, CatalogReadService>();
 builder.Services.AddScoped<ISlideReadService, SlideService>();
 builder.Services.AddScoped<ISlideWriteService, SlideService>();
+builder.Services.AddScoped<ProductSeeder>();
 
 builder.Services.AddScoped<IDbConnection>(sp =>
 {
@@ -202,6 +204,18 @@ app.MapPost("/Seeder/Basalam/seed-categories", async (CategorySeeder seeder, IWe
     }
 })
 .DisableAntiforgery();
+*/
+
+
+// Program.cs — Endpoint
+/*
+app.MapPost("/Seeder/Products/seed", async (ProductSeeder seeder, int perLeaf = 12, bool drop = true) =>
+{
+    await seeder.SeedAsync(perLeaf, drop);
+    return Results.Ok(new { ok = true, perLeaf, dropped = drop });
+})
+// .RequireAuthorization("Admin")     // اگر خواستی محدودش کن
+.WithName("SeedProducts");
 */
 
 // Endpoints اضافی‌ای که اسکفولد ساخته (Minimal APIهای Identity)

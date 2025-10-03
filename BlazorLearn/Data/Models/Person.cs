@@ -22,7 +22,9 @@ namespace BlazorLearn.Data.Models
         public string? PhoneNumber { get; set; }
 
         [Required]
-        public DateTime DateOfBirth { get; set; } // date
+        [DataType(DataType.Date)]
+        [DateRangeInvariant("1900-01-01", "2100-12-31", ErrorMessage = "تاریخ تولد نامعتبر است.")]
+        public DateTime? DateOfBirth { get; set; }
 
         [Required, MaxLength(10)]
         public string Gender { get; set; } = default!;
