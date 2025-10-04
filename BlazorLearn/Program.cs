@@ -58,7 +58,7 @@ builder.Services.AddScoped<CategorySeeder>();
 builder.Services.AddMemoryCache();
 
 // سرویس OTP (فعلاً In-Memory)
-//builder.Services.AddSingleton<IOtpService, InMemoryOtpService>();
+builder.Services.AddSingleton<IOtpServiceSmall, InMemoryOtpService>();
 
 
 builder.Services.AddScoped<BlazorLearn.Services.Implementations.ProductImageService>();
@@ -153,7 +153,7 @@ using (var scope = app.Services.CreateScope())
 
 
 // مپ اندپوینت‌ها
-//app.MapAuthOtpEndpoints(); // using BlazorLearn.Endpoints.Auth;
+app.MapAuthOtpEndpoints(); 
 
 // --- Seeding نقش‌ها و (اختیاری) افزودن کاربر به نقش ---
 // اگر متدهای Seed شما خودش CreateScope می‌کند، همین کافی است
@@ -228,6 +228,6 @@ app.MapPost("/Seeder/Products/seed", async (ProductSeeder seeder, int perLeaf = 
 */
 
 // Endpoints اضافی‌ای که اسکفولد ساخته (Minimal APIهای Identity)
-app.MapAdditionalIdentityEndpoints();
 
+app.MapAdditionalIdentityEndpoints();
 app.Run();

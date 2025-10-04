@@ -41,7 +41,7 @@ public static class AuthOtpEndpoints
     private static async Task<IResult> RequestCodeAsync(
         HttpContext http,
         RequestOtpDto dto,
-        IOtpService otp,
+        IOtpServiceSmall otp,
         ILoggerFactory loggerFactory)
     {
         var log = loggerFactory.CreateLogger("AuthOtp.Request");
@@ -70,7 +70,7 @@ public static class AuthOtpEndpoints
     private static async Task<IResult> ResendCodeAsync(
         HttpContext http,
         ResendOtpDto dto,
-        IOtpService otp,
+        IOtpServiceSmall otp,
         ILoggerFactory loggerFactory)
     {
         var log = loggerFactory.CreateLogger("AuthOtp.Resend");
@@ -92,10 +92,10 @@ public static class AuthOtpEndpoints
         log.LogInformation("RESEND OTP for {Phone} = {Code}", e164, issue.CodePreviewForDev);
         return Results.Ok(new ApiResult(true, $"کد تایید مجدداً ارسال شد به {MaskPhone(e164)}"));
     }
-    /*
+    
     private static async Task<IResult> VerifyCodeAsync(
         VerifyOtpDto dto,
-        IOtpService otp,
+        IOtpServiceSmall otp,
         UserManager<IdentityUser> userManager,
         SignInManager<IdentityUser> signInManager)
     {
@@ -139,7 +139,7 @@ public static class AuthOtpEndpoints
 
         return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
     }
-    */
+   /*
     private static async Task<IResult> VerifyCodeAsync(
     VerifyOtpDto dto,
     IOtpService otp,
@@ -194,7 +194,7 @@ public static class AuthOtpEndpoints
 
         return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
     }
-
+    */
 
 
     // ---------- Helpers ----------
@@ -212,11 +212,12 @@ public static class AuthOtpEndpoints
 // سرویس ساده OTP (In-Memory) – برای شروع کار. بعداً با دیتابیس جایگزین کن.
 // =======================================================================
 
-public interface IOtpService
+public interface IOtpServiceSmall
 {
     /// <summary>
     /// صدور/ارسال کد OTP. محدودیت زمانی و نرخ درخواست رعایت می‌شود.
     /// </summary>
+
     Task<OtpIssueResult> IssueAsync(string e164Phone, string purpose, string ip, string userAgent, bool forceResend = false);
 
     /// <summary>
@@ -233,7 +234,7 @@ public sealed record OtpIssueResult(bool Ok, string? Error = null, string? CodeP
 /// - انقضا: 2 دقیقه
 /// - حداقل فاصلهٔ ارسال مجدد: 30 ثانیه
 /// </summary>
-public class InMemoryOtpService : IOtpService
+public class InMemoryOtpService : IOtpServiceSmall
 {
     private readonly IMemoryCache _cache;
     private readonly TimeSpan _ttl = TimeSpan.FromMinutes(2);
