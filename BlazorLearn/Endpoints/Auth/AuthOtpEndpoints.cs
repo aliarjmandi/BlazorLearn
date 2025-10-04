@@ -1,184 +1,148 @@
-﻿using BlazorLearn.Common;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.AspNetCore.Http;
+﻿using System.Security.Claims;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Logging;
-using System.Security.Claims;
 
-namespace BlazorLearn.Endpoints.Auth;
+namespace BlazorStore.Auth;
 
-/// <summary>
-/// اندپوینت‌های OTP برای لاگین/ثبت‌نام با شماره موبایل.
-/// مسیر پایه: /api/auth/otp
-/// </summary>
+// ---------------------------
+//  AuthOtpEndpoints.cs
+//  Login via Phone + OTP
+//  - POST /api/auth/otp/request
+//  - POST /api/auth/otp/resend
+//  - POST /api/auth/otp/verify
+// ---------------------------
 public static class AuthOtpEndpoints
 {
     public static IEndpointRouteBuilder MapAuthOtpEndpoints(this IEndpointRouteBuilder app)
     {
-        var grp = app.MapGroup("/api/auth/otp").WithTags("Auth/OTP");
+        var group = app.MapGroup("/api/auth/otp").WithTags("Auth: OTP");
 
-        // درخواست کد
-        grp.MapPost("request", RequestCodeAsync);
-        // ارسال مجدد
-        grp.MapPost("resend", ResendCodeAsync);
-        // تایید کد و لاگین
-        grp.MapPost("verify", VerifyCodeAsync);
+        group.MapPost("/request", RequestCodeAsync);
+        group.MapPost("/resend", ResendCodeAsync);
+        group.MapPost("/verify", VerifyCodeAsync);
 
         return app;
     }
 
-    // ---------- DTOs ----------
+    // ---------------------------
+    // DTOs
+    // ---------------------------
     public sealed record RequestOtpDto(string Phone);
-    public sealed record ResendOtpDto(string Phone);
     public sealed record VerifyOtpDto(string Phone, string Code, bool RememberMe = true);
 
     public sealed record ApiResult(bool ok, string? message = null);
+    public sealed record VerifyResult(bool ok, bool isNewUser, string? redirect = null, string? message = null);
 
-    // ---------- Handlers ----------
+    // ---------------------------
+    // Handlers
+    // ---------------------------
+
+    /// <summary>
+    /// First step: user enters phone → send OTP (rate-limited).
+    /// </summary>
     private static async Task<IResult> RequestCodeAsync(
-        HttpContext http,
-        RequestOtpDto dto,
+        [FromBody] RequestOtpDto dto,
         IOtpServiceSmall otp,
-        ILoggerFactory loggerFactory)
+        IMemoryCache cache)
     {
-        var log = loggerFactory.CreateLogger("AuthOtp.Request");
-
         var e164 = PhoneUtil.ToE164(dto.Phone);
         if (string.IsNullOrWhiteSpace(e164))
             return Results.BadRequest(new ApiResult(false, "شماره موبایل معتبر نیست."));
 
-        var ip = http.Connection.RemoteIpAddress?.ToString() ?? "-";
-        var ua = http.Request.Headers.UserAgent.ToString();
+        // simple rate-limit: one request / 30s per phone
+        if (!RateLimiter.TryAcquire(cache, $"otp:req:{e164}", seconds: 30, out var waitLeft))
+            return Results.BadRequest(new ApiResult(false, $"لطفاً {waitLeft} ثانیه بعد دوباره تلاش کنید."));
 
-        var issue = await otp.IssueAsync(e164, purpose: "login", ip, ua);
-        if (!issue.Ok)
-        {
-            log.LogWarning("OTP issue failed for {Phone}: {Reason}", e164, issue.Error);
-            return Results.BadRequest(new ApiResult(false, issue.Error ?? "امکان ارسال کد نیست."));
-        }
+        var ok = await otp.RequestAsync(e164, purpose: "login");
+        if (!ok)
+            return Results.BadRequest(new ApiResult(false, "ارسال کد ناموفق بود."));
 
-        // نکته: در این نسخهٔ دمو کد در لاگ ثبت می‌شود.
-        // در محیط واقعی، کد باید از طریق SMS در اختیارت کاربر قرار بگیرد.
-        log.LogInformation("OTP for {Phone} = {Code}", e164, issue.CodePreviewForDev);
-
-        return Results.Ok(new ApiResult(true, $"کد تایید ارسال شد به {MaskPhone(e164)}"));
+        return Results.Ok(new ApiResult(true, "کد تایید ارسال شد."));
     }
 
+    /// <summary>
+    /// Optional: resend OTP (same rate-limit policy).
+    /// </summary>
     private static async Task<IResult> ResendCodeAsync(
-        HttpContext http,
-        ResendOtpDto dto,
+        [FromBody] RequestOtpDto dto,
         IOtpServiceSmall otp,
-        ILoggerFactory loggerFactory)
+        IMemoryCache cache)
     {
-        var log = loggerFactory.CreateLogger("AuthOtp.Resend");
-
         var e164 = PhoneUtil.ToE164(dto.Phone);
         if (string.IsNullOrWhiteSpace(e164))
             return Results.BadRequest(new ApiResult(false, "شماره موبایل معتبر نیست."));
 
-        var ip = http.Connection.RemoteIpAddress?.ToString() ?? "-";
-        var ua = http.Request.Headers.UserAgent.ToString();
+        if (!RateLimiter.TryAcquire(cache, $"otp:req:{e164}", seconds: 30, out var waitLeft))
+            return Results.BadRequest(new ApiResult(false, $"لطفاً {waitLeft} ثانیه بعد دوباره تلاش کنید."));
 
-        var issue = await otp.IssueAsync(e164, purpose: "login", ip, ua, forceResend: true);
-        if (!issue.Ok)
-        {
-            log.LogWarning("OTP resend failed for {Phone}: {Reason}", e164, issue.Error);
-            return Results.BadRequest(new ApiResult(false, issue.Error ?? "امکان ارسال مجدد کد نیست."));
-        }
+        var ok = await otp.RequestAsync(e164, purpose: "login");
+        if (!ok)
+            return Results.BadRequest(new ApiResult(false, "ارسال کد ناموفق بود."));
 
-        log.LogInformation("RESEND OTP for {Phone} = {Code}", e164, issue.CodePreviewForDev);
-        return Results.Ok(new ApiResult(true, $"کد تایید مجدداً ارسال شد به {MaskPhone(e164)}"));
+        return Results.Ok(new ApiResult(true, "کد تایید مجدد ارسال شد."));
     }
-    
+
+    /// <summary>
+    /// Second step: verify OTP → sign-in. If user not exists, create with role "Customer",
+    /// then sign-in and redirect to /profile for completion.
+    /// </summary>
     private static async Task<IResult> VerifyCodeAsync(
-        VerifyOtpDto dto,
+        [FromBody] VerifyOtpDto dto,
         IOtpServiceSmall otp,
         UserManager<IdentityUser> userManager,
-        SignInManager<IdentityUser> signInManager)
+        SignInManager<IdentityUser> signInManager,
+        RoleManager<IdentityRole> roleManager)
     {
         var e164 = PhoneUtil.ToE164(dto.Phone);
         if (string.IsNullOrWhiteSpace(e164))
-            return Results.BadRequest(new ApiResult(false, "شماره موبایل معتبر نیست."));
+            return Results.BadRequest(new VerifyResult(false, false, null, "شماره موبایل معتبر نیست."));
 
         var ok = await otp.VerifyAsync(e164, dto.Code, purpose: "login");
         if (!ok)
-            return Results.BadRequest(new ApiResult(false, "کد تایید نادرست یا منقضی است."));
+            return Results.BadRequest(new VerifyResult(false, false, null, "کد تایید نادرست یا منقضی است."));
 
-        // پیدا/ایجاد کردن کاربر
+        // Find or create user by PhoneNumber
         var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == e164);
+        var isNew = false;
+
         if (user is null)
         {
-            user = new IdentityUser
-            {
-                UserName = e164,           // می‌تونی اینجا phone رو به عنوان username بگیری
-                PhoneNumber = e164,
-                PhoneNumberConfirmed = true
-            };
-            var create = await userManager.CreateAsync(user);
-            if (!create.Succeeded)
-                return Results.BadRequest(new ApiResult(false, "ساخت حساب کاربری ناموفق بود."));
-
-            // اگر خواستی نقش پیش‌فرض بدی (مثلاً Customer):
-            // await userManager.AddToRoleAsync(user, "Customer");
-        }
-        else
-        {
-            // اگر تلفن قبلاً تایید نشده:
-            if (!user.PhoneNumberConfirmed)
-            {
-                user.PhoneNumberConfirmed = true;
-                await userManager.UpdateAsync(user);
-            }
-        }
-
-        // ورود
-        await signInManager.SignInAsync(user, isPersistent: dto.RememberMe);
-
-        return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
-    }
-   /*
-    private static async Task<IResult> VerifyCodeAsync(
-    VerifyOtpDto dto,
-    IOtpService otp,
-    UserManager<IdentityUser> userManager,
-    SignInManager<IdentityUser> signInManager)
-    {
-        var e164 = PhoneUtil.ToE164(dto.Phone);
-        if (string.IsNullOrWhiteSpace(e164))
-            return Results.BadRequest(new ApiResult(false, "شماره موبایل معتبر نیست."));
-
-        var ok = await otp.VerifyAsync(e164, dto.Code, purpose: "login");
-        if (!ok)
-            return Results.BadRequest(new ApiResult(false, "کد تایید نادرست یا منقضی است."));
-
-        // پیدا/ایجاد کردن کاربر بر اساس شماره
-        var user = await userManager.Users.FirstOrDefaultAsync(u => u.PhoneNumber == e164);
-        if (user is null)
-        {
-            // ایمیل ساختگیِ یونیک و معتبر برای آسودگی از برخی پالیسی‌ها (اختیاری اما توصیه‌شده)
-            var fakeEmail = $"{e164.Trim('+')}@phone.local";
-
             user = new IdentityUser
             {
                 UserName = e164,
                 PhoneNumber = e164,
-                PhoneNumberConfirmed = true,
-                Email = fakeEmail,
-                EmailConfirmed = true
+                PhoneNumberConfirmed = true
             };
 
             var create = await userManager.CreateAsync(user);
             if (!create.Succeeded)
             {
-                var details = string.Join(" | ", create.Errors.Select(e => $"{e.Code}: {e.Description}"));
-                return Results.BadRequest(new ApiResult(false, $"ساخت حساب کاربری ناموفق بود: {details}"));
+                var error = string.Join(" | ", create.Errors.Select(e => e.Description));
+                return Results.BadRequest(new VerifyResult(false, false, null, $"ساخت حساب کاربری ناموفق بود: {error}"));
             }
 
-            // نقش پیش‌فرض اگر خواستی:
-            // await userManager.AddToRoleAsync(user, "Customer");
+            isNew = true;
+
+            // Ensure "Customer" role exists and assign it
+            const string role = "Customer";
+            if (!await roleManager.RoleExistsAsync(role))
+            {
+                var r = await roleManager.CreateAsync(new IdentityRole(role));
+                if (!r.Succeeded)
+                {
+                    var err = string.Join(" | ", r.Errors.Select(e => e.Description));
+                    return Results.BadRequest(new VerifyResult(false, false, null, $"تعریف نقش ناموفق بود: {err}"));
+                }
+            }
+            await userManager.AddToRoleAsync(user, role);
+
+            // seed minimal claims (optional)
+            await userManager.AddClaimAsync(user, new Claim(ClaimTypes.MobilePhone, e164));
+            await userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "Customer"));
+            
         }
         else
         {
@@ -186,134 +150,93 @@ public static class AuthOtpEndpoints
             {
                 user.PhoneNumberConfirmed = true;
                 await userManager.UpdateAsync(user);
+                
             }
         }
 
-        // ورود بدون پسورد
+        // Sign-in (cookie auth)
         await signInManager.SignInAsync(user, isPersistent: dto.RememberMe);
 
-        return Results.Ok(new ApiResult(true, "ورود با موفقیت انجام شد."));
+        //var redirect = isNew ? "/profile" : "/"; // new users go to profile completion
+        var redirect = "/profile";
+        return Results.Ok(new VerifyResult(true, isNew, redirect, "ورود با موفقیت انجام شد."));
     }
-    */
 
-
-    // ---------- Helpers ----------
-    private static string MaskPhone(string e164)
+    // ---------------------------
+    // Helpers
+    // ---------------------------
+    private static class PhoneUtil
     {
-        // "+989121234567" → "+98****4567"
-        if (string.IsNullOrEmpty(e164) || e164.Length < 6) return e164;
-        var prefix = e164[..4];
-        var suffix = e164[^4..];
-        return $"{prefix}****{suffix}";
+        // Very light E.164 normalizer for IR (+98) and generic cases; adapt as needed.
+        // Accepts: "09xxxxxxxxx", "+989xxxxxxxxx", "9xxxxxxxxx" → "+989xxxxxxxxx"
+        private static readonly Regex Digits = new(@"[^\d+]", RegexOptions.Compiled);
+
+        public static string ToE164(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            var raw = Digits.Replace(input.Trim(), "");
+
+            if (raw.StartsWith("+"))
+            {
+                // assume already intl format like +98912...
+                return raw;
+            }
+
+            // Iran-specific handy normalization (customize for your target markets)
+            // 09xxxxxxxxx → +989xxxxxxxxx
+            if (raw.StartsWith("09") && raw.Length == 11)
+                return "+98" + raw[1..];
+
+            // 9xxxxxxxxx (missing leading 0) → +989xxxxxxxxx
+            if (raw.StartsWith("9") && raw.Length == 10)
+                return "+98" + raw;
+
+            // Fallback: treat as local without country code; you may decide to reject instead
+            // Here we just return empty to force client to provide a proper number
+            return string.Empty;
+        }
+    }
+
+    private static class RateLimiter
+    {
+        public static bool TryAcquire(IMemoryCache cache, string key, int seconds, out int waitLeftSeconds)
+        {
+            waitLeftSeconds = 0;
+
+            if (cache.TryGetValue<DateTimeOffset>(key, out var until))
+            {
+                var now = DateTimeOffset.UtcNow;
+                if (until > now)
+                {
+                    waitLeftSeconds = Math.Max(1, (int)Math.Ceiling((until - now).TotalSeconds));
+                    return false;
+                }
+            }
+
+            cache.Set(key, DateTimeOffset.UtcNow.AddSeconds(seconds), new MemoryCacheEntryOptions
+            {
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(seconds)
+            });
+
+            return true;
+        }
     }
 }
 
-// =======================================================================
-// سرویس ساده OTP (In-Memory) – برای شروع کار. بعداً با دیتابیس جایگزین کن.
-// =======================================================================
-
+// ---------------------------
+// Interfaces expected in DI
+// (Implementation (e.g., InMemoryOtpService) lives elsewhere.)
+// ---------------------------
 public interface IOtpServiceSmall
 {
     /// <summary>
-    /// صدور/ارسال کد OTP. محدودیت زمانی و نرخ درخواست رعایت می‌شود.
+    /// Request/send a code for a given phone and purpose.
+    /// Must enforce its own TTL internally (e.g., 2 minutes).
     /// </summary>
-
-    Task<OtpIssueResult> IssueAsync(string e164Phone, string purpose, string ip, string userAgent, bool forceResend = false);
+    Task<bool> RequestAsync(string phoneE164, string purpose);
 
     /// <summary>
-    /// راستی‌آزمایی کد.
+    /// Verify a previously requested code.
     /// </summary>
-    Task<bool> VerifyAsync(string e164Phone, string code, string purpose);
-}
-
-public sealed record OtpIssueResult(bool Ok, string? Error = null, string? CodePreviewForDev = null);
-
-/// <summary>
-/// پیاده‌سازی In-Memory با IMemoryCache.
-/// - طول کد: 5 رقم
-/// - انقضا: 2 دقیقه
-/// - حداقل فاصلهٔ ارسال مجدد: 30 ثانیه
-/// </summary>
-public class InMemoryOtpService : IOtpServiceSmall
-{
-    private readonly IMemoryCache _cache;
-    private readonly TimeSpan _ttl = TimeSpan.FromMinutes(2);
-    private readonly TimeSpan _resendWindow = TimeSpan.FromSeconds(30);
-    private readonly Random _rng = new();
-
-    public InMemoryOtpService(IMemoryCache cache)
-    {
-        _cache = cache;
-    }
-
-    private static string Key(string phone, string purpose) => $"otp::{purpose}::{phone}";
-
-    public Task<OtpIssueResult> IssueAsync(string e164Phone, string purpose, string ip, string userAgent, bool forceResend = false)
-    {
-        var key = Key(e164Phone, purpose);
-
-        if (_cache.TryGetValue<OtpEntry>(key, out var existing))
-        {
-            // محدودیت ارسال مجدد
-            if (!forceResend && DateTimeOffset.UtcNow - existing.IssuedAt < _resendWindow)
-            {
-                var left = (_resendWindow - (DateTimeOffset.UtcNow - existing.IssuedAt)).TotalSeconds;
-                return Task.FromResult(new OtpIssueResult(false, $"برای ارسال مجدد {Math.Ceiling(left)} ثانیه صبر کنید."));
-            }
-        }
-
-        var code = _rng.Next(10000, 99999).ToString(); // 5 رقم
-        var entry = new OtpEntry
-        {
-            Phone = e164Phone,
-            Purpose = purpose,
-            Code = code,
-            IssuedAt = DateTimeOffset.UtcNow,
-            Attempts = 0,
-            Ip = ip,
-            UserAgent = userAgent
-        };
-
-        _cache.Set(key, entry, _ttl);
-
-        // اینجا می‌تونی SMS بفرستی (در حال حاضر فقط در لاگ اندپوینت چاپ می‌شود)
-        return Task.FromResult(new OtpIssueResult(true, CodePreviewForDev: code));
-    }
-
-    public Task<bool> VerifyAsync(string e164Phone, string code, string purpose)
-    {
-        var key = Key(e164Phone, purpose);
-        if (!_cache.TryGetValue<OtpEntry>(key, out var entry))
-            return Task.FromResult(false);
-
-        // حداکثر تلاش اختیاری
-        if (entry.Attempts >= 5)
-        {
-            _cache.Remove(key);
-            return Task.FromResult(false);
-        }
-
-        entry.Attempts++;
-
-        if (!string.Equals(entry.Code, code?.Trim(), StringComparison.Ordinal))
-        {
-            _cache.Set(key, entry, _ttl); // به‌روزرسانی Attempts
-            return Task.FromResult(false);
-        }
-
-        // موفق → یکبار مصرف
-        _cache.Remove(key);
-        return Task.FromResult(true);
-    }
-
-    private sealed class OtpEntry
-    {
-        public string Phone { get; set; } = default!;
-        public string Purpose { get; set; } = default!;
-        public string Code { get; set; } = default!;
-        public DateTimeOffset IssuedAt { get; set; }
-        public int Attempts { get; set; }
-        public string Ip { get; set; } = default!;
-        public string UserAgent { get; set; } = default!;
-    }
+    Task<bool> VerifyAsync(string phoneE164, string code, string purpose);
 }

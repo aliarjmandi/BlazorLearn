@@ -57,7 +57,7 @@ namespace BlazorLearn.Services.Implementations
              ProvinceId, CityId, Address, ProfileImagePath, NationalCode, UserId)
             VALUES
             (@FirstName, @LastName, @Email, @PhoneNumber, @DateOfBirth, @Gender,
-             @ProvinceId, @CityId, @Address, @ProfileImagePath, @NationalCode .@UserId);
+             @ProvinceId, @CityId, @Address, @ProfileImagePath, @NationalCode ,@UserId);
         ";
 
         protected override object GetInsertParams(PersonWriteDto dto)

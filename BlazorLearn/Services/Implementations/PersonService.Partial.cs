@@ -106,6 +106,39 @@ OFFSET @Offset ROWS FETCH NEXT @PageSize ROWS ONLY;";
         return (items, total);
     }
 
+    /// <summary>
+    /// واکشی پروفایل شخص بر اساس شناسه‌ی کاربر (AspNetUsers.Id).
+    /// برمی‌گرداند: جزئیات به‌همراه نام استان/شهر برای نمایش ReadOnly.
+    /// تضمین یکتایی UserId با ایندکس UX_Persons_UserId برقرار است.
+    /// </summary>
+    public async Task<PersonDetailsDto?> GetByUserIdAsync(string userId)
+    {
+        const string sql = @"
+        SELECT 
+          p.Id,
+          p.FirstName,
+          p.LastName,
+          p.Email,
+          p.PhoneNumber,
+          p.DateOfBirth,
+          p.Gender,
+          p.ProvinceId, 
+          p.CityId,
+          pr.Name AS ProvinceName,
+          c.Name  AS CityName,
+          p.Address,
+          p.ProfileImagePath,
+          p.CreatedAt,
+          p.NationalCode
+          -- p.UserId -- ستون اضافی نیاز نیست برای DTO
+        FROM dbo.Persons p
+          LEFT JOIN dbo.Provinces pr ON pr.Id = p.ProvinceId
+          LEFT JOIN dbo.Cities    c  ON c.Id = p.CityId
+        WHERE p.UserId = @UserId;";
+
+        using var conn = GetConnection();
+        return await conn.QueryFirstOrDefaultAsync<PersonDetailsDto>(sql, new { UserId = userId });
+    }
     public async Task<int> AttachUserAsync(Guid personId, string userId)
     {
         const string sql = @"UPDATE dbo.Persons 

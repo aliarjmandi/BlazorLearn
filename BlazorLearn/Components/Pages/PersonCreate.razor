@@ -289,7 +289,7 @@
             throw new Exception(string.Join(" | ", result.Errors.Select(e => e.Description)));
 
         // 2) اتصال به پروفایل
-        person.UserId = user.Id;
+        person.UserId = user.Id.ToString();
 
         await personService.CreateAsync(person);
         return user.Id;

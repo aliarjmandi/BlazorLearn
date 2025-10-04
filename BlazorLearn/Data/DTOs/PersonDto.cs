@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.Security.Principal;
 
 namespace BlazorLearn.Data.DTOs
 {
@@ -19,6 +20,7 @@ namespace BlazorLearn.Data.DTOs
         public string? ProfileImagePath { get; set; }
         public DateTime CreatedAt { get; set; }
         public string NationalCode { get; set; } = string.Empty;
+        public string UserId { get; set; }
     }
 
     public class PersonWriteDto
@@ -38,7 +40,7 @@ namespace BlazorLearn.Data.DTOs
         [DataType(DataType.Date)]
         [DisplayFormat(ApplyFormatInEditMode = true, DataFormatString = "{0:yyyy-MM-dd}")]
         [DateRangeInvariant("1900-01-01", "2100-12-31", ErrorMessage = "تاریخ تولد نامعتبر است.")]
-        public DateTime? DateOfBirth { get; set; }
+        public DateTime DateOfBirth { get; set; }
 
         [Required, StringLength(12)]
         public string Gender { get; set; } = string.Empty; // Male/Female/Other
@@ -63,7 +65,7 @@ namespace BlazorLearn.Data.DTOs
         [Required, StringLength(10, MinimumLength = 10, ErrorMessage = "کد ملی باید 10 رقم باشد")]
         public string NationalCode { get; set; } = string.Empty;
 
-        public Guid? UserId { get; set; }   // اختیاری
+        public string UserId { get; set; }   // اختیاری
     }
 
     public class PersonListItemDto

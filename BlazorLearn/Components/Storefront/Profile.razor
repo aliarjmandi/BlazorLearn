@@ -1,0 +1,354 @@
+﻿@page "/profile"
+@rendermode InteractiveServer
+
+@using BlazorLearn.Data.DTOs
+@using Microsoft.AspNetCore.Components.Forms
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager Nav
+@inject ProvinceService ProvinceService
+@inject CityService CityService
+@inject PersonService PersonService
+@inject FileStorageService FileStorage
+
+<div class="vstack gap-3">
+
+    <div class="d-flex align-items-center justify-content-between">
+        <h4 class="mb-0">پروفایل</h4>
+        @if (!isLoading)
+        {
+            <div class="hstack gap-2">
+                @if (readOnly)
+                {
+                    <button class="btn btn-primary" @onclick="EnableEdit"><i class="bi bi-pencil"></i> ویرایش</button>
+                }
+                else
+                {
+                    <button class="btn btn-success" @onclick="SaveAsync" disabled="@isSaving">
+                        @(isSaving ? "در حال ذخیره..." : "ذخیره تغییرات")
+                    </button>
+                    <button class="btn btn-outline-secondary" @onclick="CancelEdit" disabled="@isSaving">انصراف</button>
+                }
+            </div>
+        }
+    </div>
+
+    <div class="card">
+        <div class="card-header">ویرایش شخص</div>
+        <div class="card-body">
+
+            @if (isLoading)
+            {
+                <div class="alert alert-info">در حال بارگذاری...</div>
+            }
+            else
+            {
+                @if (!string.IsNullOrEmpty(error))
+                {
+                    <div class="alert alert-danger">@error</div>
+                }
+                @if (!string.IsNullOrEmpty(success))
+                {
+                    <div class="alert alert-success">@success</div>
+                }
+
+                <EditForm Model="@model" OnValidSubmit="@SaveAsync">
+                    <DataAnnotationsValidator />
+                    <ValidationSummary />
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label">ایمیل</label>
+                            <InputText class="form-control" @bind-Value="model.Email" disabled="@readOnly" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">کد ملی</label>
+                            <InputText class="form-control" @bind-Value="model.NationalCode" disabled="@readOnly" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">نام</label>
+                            <InputText class="form-control" @bind-Value="model.FirstName" disabled="@readOnly" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">نام خانوادگی</label>
+                            <InputText class="form-control" @bind-Value="model.LastName" disabled="@readOnly" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">تاریخ تولد</label>
+                            <InputDate class="form-control" @bind-Value="model.DateOfBirth" disabled="@readOnly" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">تلفن</label>
+                            <InputText class="form-control" @bind-Value="model.PhoneNumber" disabled="true" />
+                            <div class="form-text">شماره موبایل از حساب کاربری خوانده می‌شود.</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">جنسیت</label>
+                            <InputSelect class="form-select" @bind-Value="model.Gender" disabled="@readOnly">
+                                <option value="">— انتخاب کنید —</option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">استان</label>
+                            <InputSelect class="form-select" @bind-Value="model.ProvinceId" disabled="@readOnly" @onchange="OnProvinceChanged">
+                                <option value="0">— انتخاب کنید —</option>
+                                @foreach (var p in provinces)
+                                {
+                                    <option value="@p.Id">@p.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">شهر</label>
+                            <InputSelect class="form-select" @bind-Value="model.CityId" disabled="@readOnly">
+                                <option value="0">— انتخاب کنید —</option>
+                                @foreach (var c in cities)
+                                {
+                                    <option value="@c.Id">@c.Name</option>
+                                }
+                            </InputSelect>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label class="form-label">آدرس</label>
+                            <InputTextArea class="form-control" @bind-Value="model.Address" disabled="@readOnly" rows="3" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="mb-2">تصویر فعلی</div>
+                            @if (!string.IsNullOrWhiteSpace(model.ProfileImagePath))
+                            {
+                                <img src="@model.ProfileImagePath" style="width:120px;height:120px;object-fit:cover;border-radius:12px" />
+                            }
+                            else
+                            {
+                                <div class="text-muted">— بدون تصویر —</div>
+                            }
+
+                            <div class="mt-3">
+                                <label class="form-label">انتخاب تصویر جدید (اختیاری)</label>
+                                <InputFile OnChange="@OnFileSelected" disabled="@readOnly" />
+                                @if (!string.IsNullOrEmpty(previewFileName))
+                                {
+                                    <div class="form-text">فایل انتخاب‌شده: @previewFileName</div>
+                                }
+                            </div>
+                        </div>
+                    </div>
+
+                    @if (!readOnly)
+                    {
+                        <div class="mt-3 d-flex gap-2">
+                            <button class="btn btn-success" type="submit" disabled="@isSaving">ذخیره تغییرات</button>
+                            <button class="btn btn-outline-secondary" type="button" @onclick="CancelEdit" disabled="@isSaving">انصراف</button>
+                        </div>
+                    }
+                </EditForm>
+            }
+        </div>
+    </div>
+</div>
+
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    // حالت‌ها
+    bool isLoading = true;
+    bool isSaving = false;
+    bool readOnly = true;     // صفحه ابتدا فقط‌خواندنی
+    string? error;
+    string? success;
+
+    // داده‌ها
+    Guid? personId;           // اگر کاربر رکورد دارد
+    PersonWriteDto model = new();
+    List<ProvinceDto> provinces = new();
+    List<CityDto> cities = new();
+
+    // فایل
+    string? previewFileName;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            isLoading = true;
+
+            // خواندن کاربر فعلی
+            //var user = await UserManager.GetUserAsync(Context.User);
+            var auth = await AuthStateTask;
+            var principal = auth.User;
+
+            if (principal?.Identity is null || !principal.Identity.IsAuthenticated)
+            {
+                Nav.NavigateTo("/phonelogin");
+                return;
+            }
+
+            var user = await UserManager.GetUserAsync(principal);
+            if (user is null) { Nav.NavigateTo("/phonelogin"); return; }
+
+            // استان/شهر
+            provinces = (await ProvinceService.GetAllAsync()).ToList();
+
+            // تلاش برای یافتن پروفایل موجود
+            // فرض: سرویس شما متدی برای گرفتن شخص بر اساس UserId دارد
+            var person = await PersonService.GetByUserIdAsync(user.Id);
+
+            if (person is not null)
+            {
+                personId = person.Id;
+                // مپ به مدل ویرایش
+                model = new PersonWriteDto
+                {
+                    FirstName = person.FirstName,
+                    LastName = person.LastName,
+                    Email = person.Email,
+                    PhoneNumber = user.PhoneNumber ?? person.PhoneNumber,
+                    DateOfBirth = person.DateOfBirth,
+                    Gender = person.Gender,
+                    ProvinceId = person.ProvinceId,
+                    CityId = person.CityId,
+                    Address = person.Address,
+                    ProfileImagePath = person.ProfileImagePath,
+                    NationalCode = person.NationalCode,
+                    UserId = user.Id // اگر DTO شما به UserId نیاز دارد
+                };
+
+                // بارگذاری شهرهای استان منتخب
+                if (model.ProvinceId > 0)
+                    cities = (await CityService.GetByProvinceIdAsync(model.ProvinceId)).ToList();
+            }
+            else
+            {
+                // اولین ورود: فرم با شماره موبایل فقط‌خواندنی
+                model = new PersonWriteDto
+                {
+                    PhoneNumber = user.PhoneNumber ?? "",
+                    Gender = "",
+                    ProvinceId = 0,
+                    CityId = 0,
+                    UserId = user.Id
+                };
+                readOnly = true; // نمایش فقط‌خواندنی تا کاربر «ویرایش» بزند
+            }
+        }
+        catch (Exception ex) { error = $"خطا در بارگذاری: {ex.Message}"; }
+        finally { isLoading = false; }
+    }
+
+    void EnableEdit()
+    {
+        readOnly = false;
+        success = error = null;
+        StateHasChanged();
+    }
+
+    async Task OnProvinceChanged(ChangeEventArgs _)
+    {
+        // وقتی استان عوض شد، لیست شهرها را به‌روز کن
+        cities = model.ProvinceId > 0
+            ? (await CityService.GetByProvinceIdAsync(model.ProvinceId)).ToList()
+            : new List<CityDto>();
+        if (!cities.Any()) model.CityId = 0;
+    }
+
+    async Task OnFileSelected(InputFileChangeEventArgs e)
+    {
+        var file = e.File;
+        if (file is null) return;
+
+        const long max = 5 * 1024 * 1024; // 5MB
+        using var ms = new MemoryStream();
+        await file.OpenReadStream(max).CopyToAsync(ms);
+
+        // اگر امضای متد: SaveProfileAsync(byte[] content, string fileName)
+        var url = await FileStorage.SaveProfileAsync(ms.ToArray(), file.Name);
+
+        // اگر امضای متد سه پارامتریه: (byte[], string, string)
+        // var url = await FileStorage.SaveProfileAsync(ms.ToArray(), file.Name, file.ContentType);
+
+        model.ProfileImagePath = url; // مسیر نهایی فایل
+        previewFileName = file.Name;
+    }
+
+    void CancelEdit()
+    {
+        // ری‌لود صفحه، ساده‌ترین راه برای برگرداندن وضعیت
+        Nav.NavigateTo("/profile", forceLoad: true);
+    }
+
+    async Task SaveAsync()
+    {
+        if (readOnly) return;
+
+        error = success = null;
+        isSaving = true;
+
+        try
+        {
+            // 1) کاربر فعلی را بگیر
+            
+            var auth = await AuthStateTask;
+            var principal = auth.User;
+
+            if (principal?.Identity is null || !principal.Identity.IsAuthenticated)
+            {
+                Nav.NavigateTo("/phonelogin");
+                return;
+            }
+
+            var user = await UserManager.GetUserAsync(principal);
+
+            if (user is null) { Nav.NavigateTo("/phonelogin"); return; }
+
+            // 2) حتماً UserId را از هویت فعلی در مدل ست کن (از فرم نگیر)
+            model.UserId = user.Id;
+
+            // 3) بررسی کن آیا قبلاً پروفایل برای این کاربر داریم؟
+            var existing = await PersonService.GetByUserIdAsync(user.Id);
+
+            if (existing is null)
+            {
+                // ایجاد رکورد جدید (CreateAsync = void)
+                await PersonService.CreateAsync(model);
+
+                // (اختیاری) مجدد وضعیت را از DB بخوان تا در حافظه هم «ویرایش» بشویم
+                existing = await PersonService.GetByUserIdAsync(user.Id);
+                // اگر خواستی شناسه را نگه داری:
+                // personId = existing?.Id;
+
+                success = "پروفایل ایجاد شد.";
+            }
+            else
+            {
+                // ویرایش
+                await PersonService.UpdateAsync(existing.Id, model);
+                success = "تغییرات با موفقیت ذخیره شد.";
+            }
+
+            readOnly = true;
+        }
+        catch (Exception ex)
+        {
+            error = $"خطا در ذخیره‌سازی: {ex.Message}";
+        }
+        finally
+        {
+            isSaving = false;
+        }
+    }
+
+}

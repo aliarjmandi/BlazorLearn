@@ -1,45 +1,40 @@
 ﻿@page "/phonelogin"
+@using System.ComponentModel.DataAnnotations
+@using BlazorLearn.Components.Layout
 @inject HttpClient Http
 @inject NavigationManager Nav
+@inject IJSRuntime JS
 @rendermode InteractiveServer
+@layout StorefrontLayout
 
 <div class="vstack gap-3">
-
-    <!-- کارت ورود/OTP -->
-    <div class="card" style="max-width:520px">
+    <div class="card mx-auto" style="max-width:520px">
         <div class="card-header">
             ورود با شماره موبایل
         </div>
         <div class="card-body">
 
-            @if (!string.IsNullOrEmpty(Error))
-            {
-                <div class="alert alert-danger py-2">@Error</div>
-            }
-            @if (!string.IsNullOrEmpty(Info))
-            {
-                <div class="alert alert-info py-2">@Info</div>
-            }
-            @if (!string.IsNullOrEmpty(Success))
-            {
-                <div class="alert alert-success py-2">@Success</div>
-            }
-
             @if (Step == 1)
             {
-                <EditForm Model="@this" OnValidSubmit="@RequestOtpAsync">
+                <EditForm Model="@PhoneModel" OnValidSubmit="@RequestAsync">
                     <DataAnnotationsValidator />
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">شماره موبایل</label>
-                            <InputText class="form-control ltr text-start" @bind-Value="Phone" />
-                            <div class="form-text">نمونه: 09121234567</div>
-                        </div>
-                        <div class="col-12 d-flex gap-2">
-                            <button type="submit" class="btn btn-primary" disabled="@Busy">
-                                @(Busy ? "در حال ارسال..." : "دریافت کد تأیید")
-                            </button>
-                        </div>
+                    <ValidationSummary />
+
+                    <div class="mb-3">
+                        <label class="form-label">شماره موبایل</label>
+                        <InputText @bind-Value="PhoneModel.Phone" class="form-control" />
+                        <div class="form-text">مثال: 0912xxxxxxx یا +98912xxxxxxx</div>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Message))
+                    {
+                        <div class="alert alert-info py-2">@Message</div>
+                    }
+
+                    <div class="d-flex gap-2">
+                        <button type="submit" class="btn btn-primary" disabled="@Busy">
+                            @(Busy ? "در حال ارسال..." : "دریافت کد تأیید")
+                        </button>
                     </div>
                 </EditForm>
             }
@@ -49,227 +44,256 @@
                     کد تأیید برای شماره <strong>@MaskedPhone</strong> ارسال شد.
                 </div>
 
-                <EditForm Model="@this" OnValidSubmit="@VerifyAsync">
+                <EditForm Model="@VerifyModel" OnValidSubmit="@VerifyAsync">
                     <DataAnnotationsValidator />
-                    <div class="row g-3">
-                        <div class="col-12">
-                            <label class="form-label">کد تأیید</label>
-                            <InputText class="form-control text-center ltr" maxlength="6" @bind-Value="Code" />
-                        </div>
+                    <ValidationSummary />
 
-                        <div class="col-12 d-flex align-items-center gap-2">
-                            <button type="submit" class="btn btn-success" disabled="@Busy">
-                                @(Busy ? "در حال بررسی..." : "تأیید و ورود")
-                            </button>
-
-                            <button type="button"
-                                    class="btn btn-outline-secondary"
-                                    disabled="@((ResendIn > 0) || Busy)"
-                                    @onclick="ResendAsync">
-                                @((ResendIn > 0) ? $"ارسال مجدد ({ResendIn})" : "ارسال مجدد")
-                            </button>
-                        </div>
-
-                        <div class="col-12">
-                            <button type="button" class="btn btn-link" @onclick="BackToPhone">
-                                تغییر شماره
-                            </button>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label">کد تأیید</label>
+                        <InputText @bind-Value="VerifyModel.Code" class="form-control" inputmode="numeric" />
                     </div>
-                </EditForm>
-            }
+
+                    <div class="form-check mb-3">
+                        <InputCheckbox @bind-Value="VerifyModel.RememberMe" class="form-check-input" id="rememberMe" />
+                        <label for="rememberMe" class="form-check-label">من را به خاطر بسپار</label>
+                    </div>
+
+                    @if (!string.IsNullOrEmpty(Message))
+                    {
+                        <div class="alert @(IsError ? "alert-danger" : "alert-info") py-2">@Message</div>
+                    }
+
+                    <div class="d-flex align-items-center gap-2">
+                        <button type="submit" class="btn btn-success" disabled="@Busy">
+                            @(Busy ? "در حال بررسی..." : "تأیید و ورود")
+                        </button>
+
+                        <button type="button" class="btn btn-link"
+                                @onclick="ResendAsync" disabled="@Busy || ResendIn > 0">
+                            ارسال مجدد @if (ResendIn > 0) {
+                            <span>(@ResendIn)</span>
+                        }
+                    </button>
+
+                    <button type="button" class="btn btn-link" @onclick="EditPhone" disabled="@Busy">
+                        ویرایش شماره
+                    </button>
+                </div>
+            </EditForm>
+                        }
         </div>
     </div>
-
 </div>
 
 @code {
-    // ==== State ====
-    private int Step = 1;              // 1: phone | 2: code
-    private bool Busy;
-    public string Phone { get; set; } = "";
-    public string Code { get; set; } = "";
-    private string Error = "";
-    private string Info = "";
-    private string Success = "";
-    private int ResendIn = 0;          // ثانیه تا فعال شدن دکمه‌ی ارسال مجدد
-    private System.Timers.Timer? _resendTimer;
+    // -------- UI State --------
+    int Step = 1;                 // 1: phone, 2: verify
+    bool Busy;
+    bool IsError;
+    string? Message;
+    string? E164Phone;
+    string? MaskedPhone;
+    System.Threading.Timer? _timer;
+    int ResendIn;
 
-    private string MaskedPhone =>
-        string.IsNullOrWhiteSpace(Phone) || Phone.Length < 4
-            ? Phone
-            : Phone[..Math.Max(0, Phone.Length - 4)].Replace(char.MinValue, '*') + "****";
+    // -------- Models --------
+    PhoneDto PhoneModel { get; set; } = new();
+    VerifyDto VerifyModel { get; set; } = new();
 
-    // ==== Helpers ====
-    private void ResetAlerts()
+    public class PhoneDto
     {
-        Error = ""; Info = ""; Success = "";
+        [Required(ErrorMessage = "شماره موبایل را وارد کنید")]
+        [StringLength(20, MinimumLength = 9, ErrorMessage = "طول شماره معتبر نیست")]
+        public string Phone { get; set; } = "";
     }
 
-    private bool LooksLikePhone(string p)
+    public class VerifyDto
     {
-        if (string.IsNullOrWhiteSpace(p)) return false;
-        var s = p.Trim();
-        // ساده: 11 رقم با شروع 09
-        return s.Length == 11 && s.StartsWith("09") && long.TryParse(s, out _);
+        [Required(ErrorMessage = "کد تأیید را وارد کنید")]
+        [StringLength(10)]
+        public string Code { get; set; } = "";
+        public bool RememberMe { get; set; } = true;
     }
 
-    private void StartResendCooldown(int seconds = 30)
+    // -------- API Dtos (هم‌راستا با سرور) --------
+    public class ApiResult { public bool ok { get; set; } public string? message { get; set; } }
+    public class VerifyResult { public bool ok { get; set; } public bool isNewUser { get; set; } public string? redirect { get; set; } public string? message { get; set; } }
+
+    // برای JS interop (پاسخ fetch)
+    public class BrowserPostResult
     {
+        public bool ok { get; set; }
+        public VerifyResult? data { get; set; }
+    }
+
+    // -------- Actions --------
+    async Task RequestAsync()
+    {
+        ResetMsg();
+        Busy = true;
+        try
+        {
+            var phone = NormalizeToLatinDigits(PhoneModel.Phone?.Trim() ?? "");
+            var res = await Http.PostAsJsonAsync("/api/auth/otp/request", new { phone });
+            var body = await res.Content.ReadFromJsonAsync<ApiResult>();
+
+            if (res.IsSuccessStatusCode && body?.ok == true)
+            {
+                E164Phone = phone;                       // همون چیزی که سمت سرور نرمال می‌شود
+                MaskedPhone = MaskPhone(phone);
+                Message = body.message ?? "کد ارسال شد";
+                Step = 2;
+                StartResendCooldown(30);
+            }
+            else
+            {
+                Error(body?.message ?? "خطا در ارسال کد");
+            }
+        }
+        catch
+        {
+            Error("خطای غیرمنتظره هنگام ارسال کد");
+        }
+        finally { Busy = false; }
+    }
+
+    async Task VerifyAsync()
+    {
+        ResetMsg();
+        Busy = true;
+        try
+        {
+            var code = NormalizeToLatinDigits(VerifyModel.Code?.Trim() ?? "");
+            var payload = new { phone = E164Phone, code, rememberMe = VerifyModel.RememberMe };
+
+            // درخواست از طریق مرورگر تا Set-Cookie در کلاینت ست شود
+            var res = await JS.InvokeAsync<BrowserPostResult>("auth.postJson", "/api/auth/otp/verify", payload);
+
+            if (res.ok && res.data?.ok == true)
+            {
+                // پس از ست شدن کوکی، با forceLoad مدار Blazor را رفرش کن
+                Nav.NavigateTo(res.data.redirect ?? "/", forceLoad: true);
+                return;
+            }
+            else
+            {
+                Error(res.data?.message ?? "کد نادرست یا منقضی است");
+            }
+        }
+        catch
+        {
+            Error("خطای غیرمنتظره هنگام تأیید کد");
+        }
+        finally { Busy = false; }
+    }
+
+    async Task ResendAsync()
+    {
+        if (ResendIn > 0) return;
+        ResetMsg();
+        Busy = true;
+        try
+        {
+            var res = await Http.PostAsJsonAsync("/api/auth/otp/resend", new { phone = E164Phone });
+            var body = await res.Content.ReadFromJsonAsync<ApiResult>();
+            if (res.IsSuccessStatusCode && body?.ok == true)
+            {
+                Message = body.message ?? "کد مجدداً ارسال شد";
+                StartResendCooldown(30);
+            }
+            else
+            {
+                Error(body?.message ?? "ارسال مجدد ناموفق بود");
+            }
+        }
+        catch
+        {
+            Error("خطای غیرمنتظره هنگام ارسال مجدد");
+        }
+        finally { Busy = false; }
+    }
+
+    void EditPhone()
+    {
+        Step = 1;
+        VerifyModel.Code = "";
+        ResetMsg();
+        StopTimer();
+        ResendIn = 0;
+    }
+
+    // -------- Helpers --------
+    void StartResendCooldown(int seconds)
+    {
+        StopTimer();
         ResendIn = seconds;
-        _resendTimer?.Dispose();
-        _resendTimer = new System.Timers.Timer(1000);
-        _resendTimer.Elapsed += (_, __) =>
+        _timer = new System.Threading.Timer(_ =>
         {
             if (ResendIn > 0)
             {
                 ResendIn--;
                 InvokeAsync(StateHasChanged);
             }
-            else
-            {
-                _resendTimer?.Stop();
-                _resendTimer?.Dispose();
-                _resendTimer = null;
-            }
+        }, null, 1000, 1000);
+    }
+
+    void StopTimer()
+    {
+        _timer?.Dispose();
+        _timer = null;
+    }
+
+    void ResetMsg()
+    {
+        IsError = false;
+        Message = null;
+    }
+
+    void Error(string msg)
+    {
+        IsError = true;
+        Message = msg;
+    }
+
+    static string NormalizeToLatinDigits(string s)
+    {
+        var map = new Dictionary<char, char>
+        {
+            ['۰'] = '0',
+            ['۱'] = '1',
+            ['۲'] = '2',
+            ['۳'] = '3',
+            ['۴'] = '4',
+            ['۵'] = '5',
+            ['۶'] = '6',
+            ['۷'] = '7',
+            ['۸'] = '8',
+            ['۹'] = '9',
+            ['٠'] = '0',
+            ['١'] = '1',
+            ['٢'] = '2',
+            ['٣'] = '3',
+            ['٤'] = '4',
+            ['٥'] = '5',
+            ['٦'] = '6',
+            ['٧'] = '7',
+            ['٨'] = '8',
+            ['٩'] = '9',
         };
-        _resendTimer.Start();
+        var ch = s.ToCharArray();
+        for (int i = 0; i < ch.Length; i++)
+            if (map.TryGetValue(ch[i], out var l)) ch[i] = l;
+        return new string(ch);
     }
 
-    // ==== Actions ====
-    private async Task RequestOtpAsync()
+    static string MaskPhone(string? p)
     {
-        ResetAlerts();
-
-        if (!LooksLikePhone(Phone))
-        {
-            Error = "شماره موبایل معتبر نیست.";
-            return;
-        }
-
-        try
-        {
-            Busy = true;
-            var payload = new { phone = Phone };
-            var res = await Http.PostAsJsonAsync("/api/auth/otp/request", payload);
-
-            if (res.IsSuccessStatusCode)
-            {
-                Info = "کد تأیید برای شما ارسال شد.";
-                Step = 2;
-                Code = "";
-                StartResendCooldown(30);
-            }
-            else
-            {
-                var txt = await res.Content.ReadAsStringAsync();
-                Error = string.IsNullOrWhiteSpace(txt) ? "خطا در ارسال کد." : txt;
-            }
-        }
-        catch
-        {
-            Error = "خطا در ارتباط با سرور.";
-        }
-        finally
-        {
-            Busy = false;
-        }
+        if (string.IsNullOrWhiteSpace(p)) return "";
+        var s = p.Trim();
+        if (s.StartsWith("+") && s.Length > 6) return s[..4] + "****" + s[^3..];
+        if (s.Length > 6) return s[..3] + "****" + s[^3..];
+        return s;
     }
 
-    private async Task ResendAsync()
-    {
-        ResetAlerts();
-
-        if (!LooksLikePhone(Phone))
-        {
-            Error = "شماره موبایل معتبر نیست.";
-            return;
-        }
-
-        try
-        {
-            Busy = true;
-            var payload = new { phone = Phone };
-            var res = await Http.PostAsJsonAsync("/api/auth/otp/resend", payload);
-
-            if (res.IsSuccessStatusCode)
-            {
-                Info = "کد جدید ارسال شد.";
-                StartResendCooldown(30);
-            }
-            else
-            {
-                var txt = await res.Content.ReadAsStringAsync();
-                Error = string.IsNullOrWhiteSpace(txt) ? "امکان ارسال مجدد فعلاً نیست." : txt;
-            }
-        }
-        catch
-        {
-            Error = "خطا در ارتباط با سرور.";
-        }
-        finally
-        {
-            Busy = false;
-        }
-    }
-
-    private async Task VerifyAsync()
-    {
-        ResetAlerts();
-
-        if (string.IsNullOrWhiteSpace(Code))
-        {
-            Error = "کد تأیید را وارد کنید.";
-            return;
-        }
-
-        try
-        {
-            Busy = true;
-            var payload = new { phone = Phone, code = Code };
-            var res = await Http.PostAsJsonAsync("/api/auth/otp/verify", payload);
-
-            if (res.IsSuccessStatusCode)
-            {
-                Success = "ورود با موفقیت انجام شد.";
-                // بعد از کمی مکث برو پروفایل
-                await Task.Delay(600);
-                Nav.NavigateTo("/profile", forceLoad: false);
-            }
-            else
-            {
-                var txt = await res.Content.ReadAsStringAsync();
-                Error = string.IsNullOrWhiteSpace(txt) ? "کد واردشده صحیح نیست." : txt;
-            }
-        }
-        catch
-        {
-            Error = "خطا در ارتباط با سرور.";
-        }
-        finally
-        {
-            Busy = false;
-        }
-    }
-
-    private void BackToPhone()
-    {
-        ResetAlerts();
-        Step = 1;
-        Code = "";
-        _resendTimer?.Dispose();
-        _resendTimer = null;
-        ResendIn = 0;
-    }
-
-    protected override void OnParametersSet()
-    {
-        // اگر لاگین بودی، می‌تونی مستقیم منتقل کنی (دلخواه)
-        base.OnParametersSet();
-    }
-
-    public void Dispose()
-    {
-        _resendTimer?.Dispose();
-    }
+    public void Dispose() => StopTimer();
 }

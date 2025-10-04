@@ -9,9 +9,13 @@
 
 	<ItemGroup>
 		<Compile Remove="Pages\**" />
+		<Compile Remove="Services\Otp\**" />
 		<Content Remove="Pages\**" />
+		<Content Remove="Services\Otp\**" />
 		<EmbeddedResource Remove="Pages\**" />
+		<EmbeddedResource Remove="Services\Otp\**" />
 		<None Remove="Pages\**" />
+		<None Remove="Services\Otp\**" />
 	</ItemGroup>
 
 	<ItemGroup>
@@ -19,6 +23,7 @@
 		<Compile Remove="Migrations\20250816151145_InitIdentity.cs" />
 		<Compile Remove="Migrations\20250816151145_InitIdentity.Designer.cs" />
 		<Compile Remove="Migrations\ApplicationDbContextModelSnapshot.cs" />
+		<Compile Remove="Services\Abstractions\IOtpService.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
