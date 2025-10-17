@@ -1,6 +1,7 @@
 ﻿@page "/profile"
 @rendermode InteractiveServer
 
+@using System.ComponentModel.DataAnnotations
 @using BlazorLearn.Data.DTOs
 @using Microsoft.AspNetCore.Components.Forms
 @using Microsoft.AspNetCore.Identity
@@ -12,6 +13,8 @@
 @inject CityService CityService
 @inject PersonService PersonService
 @inject FileStorageService FileStorage
+@inject IServiceScopeFactory ScopeFactory
+@inject IJSRuntime JS
 
 <div class="vstack gap-3">
 
@@ -99,7 +102,10 @@
 
                         <div class="col-md-6">
                             <label class="form-label">استان</label>
-                            <InputSelect class="form-select" @bind-Value="model.ProvinceId" disabled="@readOnly" @onchange="OnProvinceChanged">
+                            <InputSelect class="form-select"
+                                         @bind-Value="model.ProvinceId"
+                                         @bind-Value:after="() => ProvinceChanged(model.ProvinceId)"
+                                         disabled="@readOnly">
                                 <option value="0">— انتخاب کنید —</option>
                                 @foreach (var p in provinces)
                                 {
@@ -110,7 +116,10 @@
 
                         <div class="col-md-6">
                             <label class="form-label">شهر</label>
-                            <InputSelect class="form-select" @bind-Value="model.CityId" disabled="@readOnly">
+                            <InputSelect class="form-select"
+                                         @key="model.ProvinceId"
+                                         @bind-Value="model.CityId"
+                                         disabled="@readOnly">
                                 <option value="0">— انتخاب کنید —</option>
                                 @foreach (var c in cities)
                                 {
@@ -157,6 +166,57 @@
             }
         </div>
     </div>
+
+    @* --- کارت امنیت حساب: مستقل از حالت readOnly نمایش داده می‌شود --- *@
+    @if (!isLoading)
+    {
+        <div class="card">
+            <div class="card-header">امنیت حساب</div>
+            <div class="card-body">
+                @if (!hasPassword)
+                {
+                    <div class="alert alert-warning small">
+                        چون اولین‌بار با پیامک وارد شدی، یک رمز عبور تعیین کن تا بدون موبایل هم بتوانی وارد شوی.
+                    </div>
+                    <EditForm Model="@setVm" OnValidSubmit="@SetPasswordAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="mb-2">
+                            <label class="form-label">رمز عبور جدید</label>
+                            <InputText class="form-control" @bind-Value="setVm.NewPassword" type="password" />
+                            <div class="form-text">
+                                حداقل ۶ کاراکتر، شامل حداقل یک حرف و یک رقم.
+                            </div>
+                        </div>
+                        <button class="btn btn-outline-primary" type="submit">تنظیم رمز</button>
+                    </EditForm>
+                }
+                else
+                {
+                    <EditForm Model="@chVm" OnValidSubmit="@ChangePasswordAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <label class="form-label">رمز فعلی</label>
+                                <InputText class="form-control" @bind-Value="chVm.OldPassword" type="password" />
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label">رمز جدید</label>
+                                <InputText class="form-control" @bind-Value="chVm.NewPassword" type="password" />
+                                <div class="form-text">
+                                    حداقل ۶ کاراکتر، شامل حداقل یک حرف و یک رقم.
+                                </div>
+                            </div>
+                            <div class="col-md-4 d-flex align-items-end">
+                                <button class="btn btn-outline-primary" type="submit">تغییر رمز</button>
+                            </div>
+                        </div>
+                    </EditForm>
+                }
+            </div>
+        </div>
+    }
 </div>
 
 
@@ -177,8 +237,33 @@
     List<ProvinceDto> provinces = new();
     List<CityDto> cities = new();
 
+    // امنیت حساب (پسورد)
+    bool hasPassword = false;
+
     // فایل
     string? previewFileName;
+
+    // ViewModels برای امنیت حساب + اعتبارسنجی سمت‌کلاینت
+    class SetVm
+    {
+        [Required(ErrorMessage = "رمز عبور را وارد کنید")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "حداقل ۶ کاراکتر")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$", ErrorMessage = "رمز باید حداقل یک حرف و یک رقم داشته باشد")]
+        public string NewPassword { get; set; } = "";
+    }
+    class ChangeVm
+    {
+        [Required(ErrorMessage = "رمز فعلی را وارد کنید")]
+        public string OldPassword { get; set; } = "";
+
+        [Required(ErrorMessage = "رمز جدید را وارد کنید")]
+        [StringLength(100, MinimumLength = 6, ErrorMessage = "حداقل ۶ کاراکتر")]
+        [RegularExpression(@"^(?=.*[A-Za-z])(?=.*\d).+$", ErrorMessage = "رمز باید حداقل یک حرف و یک رقم داشته باشد")]
+        public string NewPassword { get; set; } = "";
+    }
+
+    SetVm setVm = new();
+    ChangeVm chVm = new();
 
     protected override async Task OnInitializedAsync()
     {
@@ -186,11 +271,8 @@
         {
             isLoading = true;
 
-            // خواندن کاربر فعلی
-            //var user = await UserManager.GetUserAsync(Context.User);
             var auth = await AuthStateTask;
             var principal = auth.User;
-
             if (principal?.Identity is null || !principal.Identity.IsAuthenticated)
             {
                 Nav.NavigateTo("/phonelogin");
@@ -204,13 +286,11 @@
             provinces = (await ProvinceService.GetAllAsync()).ToList();
 
             // تلاش برای یافتن پروفایل موجود
-            // فرض: سرویس شما متدی برای گرفتن شخص بر اساس UserId دارد
             var person = await PersonService.GetByUserIdAsync(user.Id);
 
             if (person is not null)
             {
                 personId = person.Id;
-                // مپ به مدل ویرایش
                 model = new PersonWriteDto
                 {
                     FirstName = person.FirstName,
@@ -224,10 +304,9 @@
                     Address = person.Address,
                     ProfileImagePath = person.ProfileImagePath,
                     NationalCode = person.NationalCode,
-                    UserId = user.Id // اگر DTO شما به UserId نیاز دارد
+                    UserId = user.Id
                 };
 
-                // بارگذاری شهرهای استان منتخب
                 if (model.ProvinceId > 0)
                     cities = (await CityService.GetByProvinceIdAsync(model.ProvinceId)).ToList();
             }
@@ -242,11 +321,22 @@
                     CityId = 0,
                     UserId = user.Id
                 };
-                readOnly = true; // نمایش فقط‌خواندنی تا کاربر «ویرایش» بزند
+                readOnly = true;
             }
+
+            // بررسی داشتن پسورد (در scope جدا تا تداخل DbContext رخ ندهد)
+            using var scope = ScopeFactory.CreateScope();
+            var um = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+            hasPassword = await um.HasPasswordAsync(user);
         }
-        catch (Exception ex) { error = $"خطا در بارگذاری: {ex.Message}"; }
-        finally { isLoading = false; }
+        catch (Exception ex)
+        {
+            error = $"خطا در بارگذاری: {ex.Message}";
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 
     void EnableEdit()
@@ -256,13 +346,13 @@
         StateHasChanged();
     }
 
-    async Task OnProvinceChanged(ChangeEventArgs _)
+    async Task ProvinceChanged(int newProvinceId)
     {
-        // وقتی استان عوض شد، لیست شهرها را به‌روز کن
-        cities = model.ProvinceId > 0
-            ? (await CityService.GetByProvinceIdAsync(model.ProvinceId)).ToList()
-            : new List<CityDto>();
-        if (!cities.Any()) model.CityId = 0;
+        cities = newProvinceId > 0
+            ? (await CityService.GetByProvinceIdAsync(newProvinceId)).ToList()
+            : new();
+        model.CityId = 0;      // ریست شهر
+        StateHasChanged();
     }
 
     async Task OnFileSelected(InputFileChangeEventArgs e)
@@ -274,19 +364,13 @@
         using var ms = new MemoryStream();
         await file.OpenReadStream(max).CopyToAsync(ms);
 
-        // اگر امضای متد: SaveProfileAsync(byte[] content, string fileName)
         var url = await FileStorage.SaveProfileAsync(ms.ToArray(), file.Name);
-
-        // اگر امضای متد سه پارامتریه: (byte[], string, string)
-        // var url = await FileStorage.SaveProfileAsync(ms.ToArray(), file.Name, file.ContentType);
-
-        model.ProfileImagePath = url; // مسیر نهایی فایل
+        model.ProfileImagePath = url;
         previewFileName = file.Name;
     }
 
     void CancelEdit()
     {
-        // ری‌لود صفحه، ساده‌ترین راه برای برگرداندن وضعیت
         Nav.NavigateTo("/profile", forceLoad: true);
     }
 
@@ -299,8 +383,6 @@
 
         try
         {
-            // 1) کاربر فعلی را بگیر
-            
             var auth = await AuthStateTask;
             var principal = auth.User;
 
@@ -311,30 +393,20 @@
             }
 
             var user = await UserManager.GetUserAsync(principal);
-
             if (user is null) { Nav.NavigateTo("/phonelogin"); return; }
 
-            // 2) حتماً UserId را از هویت فعلی در مدل ست کن (از فرم نگیر)
             model.UserId = user.Id;
 
-            // 3) بررسی کن آیا قبلاً پروفایل برای این کاربر داریم؟
             var existing = await PersonService.GetByUserIdAsync(user.Id);
 
             if (existing is null)
             {
-                // ایجاد رکورد جدید (CreateAsync = void)
                 await PersonService.CreateAsync(model);
-
-                // (اختیاری) مجدد وضعیت را از DB بخوان تا در حافظه هم «ویرایش» بشویم
                 existing = await PersonService.GetByUserIdAsync(user.Id);
-                // اگر خواستی شناسه را نگه داری:
-                // personId = existing?.Id;
-
                 success = "پروفایل ایجاد شد.";
             }
             else
             {
-                // ویرایش
                 await PersonService.UpdateAsync(existing.Id, model);
                 success = "تغییرات با موفقیت ذخیره شد.";
             }
@@ -351,4 +423,85 @@
         }
     }
 
+    // ---- امنیت حساب: تنظیم/تغییر رمز عبور ----
+    async Task SetPasswordAsync()
+    {
+        if (!ValidateLocalPassword(setVm.NewPassword)) return;
+
+        try
+        {
+            var res = await JS.InvokeAsync<BrowserPostResult>("auth.postJson", "/api/auth/password/set",
+                new { newPassword = setVm.NewPassword });
+
+            if (res.ok && res.data?.ok == true)
+            {
+                success = "رمز عبور تنظیم شد.";
+                error = null;
+                hasPassword = true;
+                setVm = new();
+            }
+            else
+            {
+                error = res.data?.message ?? "خطا در تنظیم رمز.";
+                success = null;
+            }
+        }
+        catch
+        {
+            error = "خطای غیرمنتظره در تنظیم رمز.";
+        }
+    }
+
+    async Task ChangePasswordAsync()
+    {
+        if (!ValidateLocalPassword(chVm.NewPassword)) return;
+
+        try
+        {
+            var res = await JS.InvokeAsync<BrowserPostResult>("auth.postJson", "/api/auth/password/change",
+                new { oldPassword = chVm.OldPassword, newPassword = chVm.NewPassword });
+
+            if (res.ok && res.data?.ok == true)
+            {
+                success = "رمز عبور تغییر کرد.";
+                error = null;
+                chVm = new();
+            }
+            else
+            {
+                error = res.data?.message ?? "خطا در تغییر رمز.";
+                success = null;
+            }
+        }
+        catch
+        {
+            error = "خطای غیرمنتظره در تغییر رمز.";
+        }
+    }
+
+    // ولیدیشن سریع سمت‌کلاینت (قبل از ارسال به سرور)
+    bool ValidateLocalPassword(string pwd)
+    {
+        error = null; success = null;
+        if (string.IsNullOrWhiteSpace(pwd))
+        {
+            error = "رمز عبور را وارد کنید.";
+            return false;
+        }
+        if (pwd.Length < 6)
+        {
+            error = "حداقل طول رمز ۶ کاراکتر است.";
+            return false;
+        }
+        if (!(pwd.Any(char.IsLetter) && pwd.Any(char.IsDigit)))
+        {
+            error = "رمز باید حداقل یک حرف و یک رقم داشته باشد.";
+            return false;
+        }
+        return true;
+    }
+
+    // مدل پاسخ fetch
+    public class BrowserPostResult { public bool ok { get; set; } public ApiResult? data { get; set; } }
+    public class ApiResult { public bool ok { get; set; } public string? message { get; set; } }
 }

@@ -1,0 +1,118 @@
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using BlazorLearn.Data.DTOs
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.Extensions.DependencyInjection
+@using Microsoft.AspNetCore.Identity
+
+@inject UserManager<IdentityUser> UserManager
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+@inject PersonService PersonService
+@rendermode InteractiveServer
+@inject IServiceScopeFactory ScopeFactory
+
+<CascadingAuthenticationState>
+    <div class="user-menu">
+        @if (loading)
+        {
+            <div class="spinner-border spinner-border-sm text-secondary" role="status"></div>
+        }
+        else if (!isAuthenticated)
+        {
+            <button class="btn btn-outline-primary btn-sm" @onclick="@(() => Nav.NavigateTo("/phonelogin"))">
+                ورود / ثبت‌نام
+            </button>
+        }
+        else
+        {
+            <div class="dropdown">
+                <button class="dropdown-toggle d-flex align-items-center gap-2" data-bs-toggle="dropdown">
+                    <img src="@avatarUrl"
+                         alt="avatar"
+                         style="width:32px;height:32px;border-radius:50%;object-fit:cover;
+                border:2px solid #e0e0e0;transition:all .2s ease;"
+                         onmouseover="this.style.borderColor='#0d6efd';"
+                         onmouseout="this.style.borderColor='#e0e0e0';" />
+                    <span>@displayName</span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end text-end">
+                    @if (needsProfile)
+                    {
+                        <li><a class="dropdown-item text-warning" @onclick="@(() => Nav.NavigateTo("/profile"))">تکمیل پروفایل</a></li>
+                        <li><hr class="dropdown-divider" /></li>
+                    }
+                    <li><a class="dropdown-item" @onclick="@(() => Nav.NavigateTo("/profile"))">پروفایل</a></li>
+                    <li><a class="dropdown-item" @onclick="@(() => Nav.NavigateTo("/orders"))">سفارش‌ها</a></li>
+                    <li><hr class="dropdown-divider" /></li>
+                    <li><button class="dropdown-item text-danger" @onclick="LogoutAsync">خروج</button></li>
+                </ul>
+            </div>
+        }
+    </div>
+
+</CascadingAuthenticationState>
+
+@code {
+    [CascadingParameter] private Task<AuthenticationState> AuthStateTask { get; set; } = default!;
+
+    bool loading = true;
+    bool isAuthenticated;
+    bool needsProfile;
+    string displayName = "کاربر";
+    string avatarUrl = "/images/avatar-default.png";
+
+    protected override async Task OnInitializedAsync()
+    {
+        var auth = await AuthStateTask;           // ← به‌جای AuthProvider
+        var principal = auth.User;
+        isAuthenticated = principal?.Identity?.IsAuthenticated == true;
+
+        if (!isAuthenticated) { loading = false; return; }
+
+        // UserManager در Scope جدا تا DbContext مستقل بگیرد
+        using var scope = ScopeFactory.CreateScope();
+        var um = scope.ServiceProvider.GetRequiredService<UserManager<IdentityUser>>();
+        var user = await um.GetUserAsync(principal);
+        var userId = user?.Id;
+        var phone = user?.PhoneNumber ?? user?.UserName;
+
+        if (string.IsNullOrEmpty(userId)) { loading = false; return; }
+
+        var person = await PersonService.GetByUserIdAsync(userId);
+        if (person is not null)
+        {
+            var name = $"{person.FirstName} {person.LastName}".Trim();
+            displayName = string.IsNullOrWhiteSpace(name) ? MaskPhone(phone) : name;
+            if (!string.IsNullOrWhiteSpace(person.ProfileImagePath))
+                avatarUrl = person.ProfileImagePath;
+        }
+        else
+        {
+            displayName = MaskPhone(phone);
+            needsProfile = true;
+        }
+
+        loading = false;
+    }
+
+    async Task LogoutAsync()
+    {
+        // خروج از طریق مرورگر تا کوکی پاک شود
+        var res = await JS.InvokeAsync<BrowserResult>("auth.postJson", "/api/auth/logout", new { });
+        // حتی اگر API چیزی برنگرداند، صفحه را ریفرش کن
+        Nav.NavigateTo("/", forceLoad: true);
+    }
+
+    static string MaskPhone(string? p)
+    {
+        if (string.IsNullOrWhiteSpace(p)) return "کاربر";
+        var s = p.Trim();
+        if (s.StartsWith("+") && s.Length > 6) return s[..4] + "****" + s[^3..];
+        if (s.Length > 6) return s[..3] + "****" + s[^3..];
+        return s;
+    }
+
+    public class BrowserResult { public bool ok { get; set; } }
+}
+

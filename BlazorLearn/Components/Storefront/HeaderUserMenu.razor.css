@@ -1,0 +1,37 @@
+﻿/* --- User menu avatar & layout fix --- */
+.user-menu {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+}
+
+    .user-menu .dropdown-toggle {
+        background-color: transparent;
+        border: none;
+        box-shadow: none;
+        padding: 0;
+    }
+
+    .user-menu .avatar-img {
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-menu span {
+        font-size: 0.9rem;
+        font-weight: 500;
+        color: #333;
+    }
+
+.dropdown-menu {
+    font-size: 0.9rem;
+}
+
+.user-menu .avatar-img {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+}

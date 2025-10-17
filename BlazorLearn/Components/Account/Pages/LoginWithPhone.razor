@@ -10,36 +10,84 @@
 <div class="vstack gap-3">
     <div class="card mx-auto" style="max-width:520px">
         <div class="card-header">
-            ورود با شماره موبایل
+            ورود به حساب کاربری
         </div>
         <div class="card-body">
 
             @if (Step == 1)
             {
-                <EditForm Model="@PhoneModel" OnValidSubmit="@RequestAsync">
-                    <DataAnnotationsValidator />
-                    <ValidationSummary />
+                @if (!pwMode)
+                {
+                    <!-- فرم ورود با پیامک -->
+                    <EditForm Model="@PhoneModel" OnValidSubmit="@RequestAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
 
-                    <div class="mb-3">
-                        <label class="form-label">شماره موبایل</label>
-                        <InputText @bind-Value="PhoneModel.Phone" class="form-control" />
-                        <div class="form-text">مثال: 0912xxxxxxx یا +98912xxxxxxx</div>
-                    </div>
+                        <div class="mb-3">
+                            <label class="form-label">شماره موبایل</label>
+                            <InputText @bind-Value="PhoneModel.Phone" class="form-control" />
+                            <div class="form-text">مثال: 0912xxxxxxx یا +98912xxxxxxx</div>
+                        </div>
 
-                    @if (!string.IsNullOrEmpty(Message))
-                    {
-                        <div class="alert alert-info py-2">@Message</div>
-                    }
+                        @if (!string.IsNullOrEmpty(Message))
+                        {
+                            <div class="alert alert-info py-2">@Message</div>
+                        }
 
-                    <div class="d-flex gap-2">
-                        <button type="submit" class="btn btn-primary" disabled="@Busy">
-                            @(Busy ? "در حال ارسال..." : "دریافت کد تأیید")
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary" disabled="@Busy">
+                                @(Busy ? "در حال ارسال..." : "دریافت کد تأیید")
+                            </button>
+                        </div>
+                    </EditForm>
+
+                    <div class="mt-3 text-center">
+                        <button class="btn btn-link p-0" @onclick="@(() => pwMode = true)">
+                            ورود با رمز عبور
                         </button>
                     </div>
-                </EditForm>
+                }
+                else
+                {
+                    <!-- فرم ورود با رمز عبور -->
+                    <EditForm Model="@Pw" OnValidSubmit="@PasswordLoginAsync">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary />
+
+                        <div class="mb-3">
+                            <label class="form-label">نام کاربری یا موبایل</label>
+                            <InputText class="form-control" @bind-Value="Pw.UserNameOrPhone" />
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">رمز عبور</label>
+                            <InputText class="form-control" @bind-Value="Pw.Password" type="password" />
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="Pw.RememberMe" class="form-check-input" id="rememberMePw" />
+                            <label for="rememberMePw" class="form-check-label">من را به خاطر بسپار</label>
+                        </div>
+
+                        @if (!string.IsNullOrEmpty(Message))
+                        {
+                            <div class="alert @(IsError ? "alert-danger" : "alert-info") py-2">@Message</div>
+                        }
+
+                        <div class="d-flex align-items-center gap-2">
+                            <button type="submit" class="btn btn-success" disabled="@Busy">
+                                @(Busy ? "در حال ورود..." : "ورود به حساب")
+                            </button>
+                            <button type="button" class="btn btn-link p-0" @onclick="@(() => pwMode = false)" disabled="@Busy">
+                                ورود با پیامک
+                            </button>
+                        </div>
+                    </EditForm>
+                }
             }
             else if (Step == 2)
             {
+                <!-- مرحله وارد کردن کد تایید -->
                 <div class="mb-2 text-muted small">
                     کد تأیید برای شماره <strong>@MaskedPhone</strong> ارسال شد.
                 </div>
@@ -70,22 +118,35 @@
 
                         <button type="button" class="btn btn-link"
                                 @onclick="ResendAsync" disabled="@Busy || ResendIn > 0">
-                            ارسال مجدد @if (ResendIn > 0) {
-                            <span>(@ResendIn)</span>
-                        }
-                    </button>
+                            ارسال مجدد
+                            @if (ResendIn > 0)
+                            {
+                                <span>(@ResendIn)</span>
+                            }
+                        </button>
 
-                    <button type="button" class="btn btn-link" @onclick="EditPhone" disabled="@Busy">
-                        ویرایش شماره
-                    </button>
-                </div>
-            </EditForm>
-                        }
+                        <button type="button" class="btn btn-link" @onclick="EditPhone" disabled="@Busy">
+                            ویرایش شماره
+                        </button>
+                    </div>
+                </EditForm>
+            }
         </div>
     </div>
 </div>
 
+
 @code {
+    bool pwMode = false;
+    PasswordLoginDto Pw = new();
+
+    class PasswordLoginDto
+    {
+        public string UserNameOrPhone { get; set; } = "";
+        public string Password { get; set; } = "";
+        public bool RememberMe { get; set; } = true;
+    }
+
     // -------- UI State --------
     int Step = 1;                 // 1: phone, 2: verify
     bool Busy;
@@ -296,4 +357,24 @@
     }
 
     public void Dispose() => StopTimer();
+
+    
+    async Task PasswordLoginAsync()
+    {
+        ResetMsg(); Busy = true;
+        try
+        {
+            var payload = new { userNameOrPhone = Pw.UserNameOrPhone, password = Pw.Password, rememberMe = Pw.RememberMe };
+            var res = await JS.InvokeAsync<BrowserPostResult>("auth.postJson", "/api/auth/password/login", payload);
+            if (res.ok && res.data?.ok == true)
+            {
+                Nav.NavigateTo(res.data.redirect ?? "/", forceLoad: true);
+                return;
+            }
+            Error(res.data?.message ?? "ورود ناموفق");
+        }
+        finally { Busy = false; }
+    }
+
+
 }

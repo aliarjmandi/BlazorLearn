@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BlazorStore.Auth;
 
@@ -16,13 +17,89 @@ namespace BlazorStore.Auth;
 // ---------------------------
 public static class AuthOtpEndpoints
 {
+    public record LoginDto(string UserNameOrPhone, string Password, bool RememberMe);
+    public record SetPasswordDto(string NewPassword);
+    public record ChangePasswordDto(string OldPassword, string NewPassword);
+
     public static IEndpointRouteBuilder MapAuthOtpEndpoints(this IEndpointRouteBuilder app)
     {
+
         var group = app.MapGroup("/api/auth/otp").WithTags("Auth: OTP");
 
         group.MapPost("/request", RequestCodeAsync);
         group.MapPost("/resend", ResendCodeAsync);
         group.MapPost("/verify", VerifyCodeAsync);
+
+        // --- Logout خارج از گروه OTP تا آدرس /api/auth/logout باشد ---
+        app.MapPost("/api/auth/logout", async (SignInManager<IdentityUser> signIn) =>
+        {
+            await signIn.SignOutAsync();
+            return Results.Ok(new { ok = true });
+        })
+        .WithTags("Auth: Core");
+
+        /// داخل MapAuthOtpEndpoints، بعد از group و مپ‌های OTP:
+        app.MapPost("/api/auth/password/login", async (
+            SignInManager<IdentityUser> signIn,
+            UserManager<IdentityUser> userManager,
+            LoginDto dto) =>
+        {
+            // کاربر را با نام‌کاربری یا موبایل پیدا کن
+            IdentityUser? user = await userManager.FindByNameAsync(dto.UserNameOrPhone);
+            if (user is null)
+            {
+                // اگر UserName نیست، با PhoneNumber بگرد (در صورت نیاز phone normalize کن)
+                user = await userManager.Users.SingleOrDefaultAsync(u => u.PhoneNumber == dto.UserNameOrPhone);
+            }
+            if (user is null)
+                return Results.Ok(new { ok = false, message = "کاربری با این مشخصات یافت نشد." });
+
+            var result = await signIn.PasswordSignInAsync(user.UserName!, dto.Password, dto.RememberMe, lockoutOnFailure: true);
+            if (!result.Succeeded)
+                return Results.Ok(new { ok = false, message = "نام کاربری/رمز عبور نادرست است." });
+
+            return Results.Ok(new { ok = true, redirect = "/" });
+        }).WithTags("Auth: Password");
+
+        app.MapPost("/api/auth/password/set", [Authorize] async (
+            UserManager<IdentityUser> userManager,
+            ClaimsPrincipal principal,
+            SetPasswordDto dto) =>
+        {
+            var user = await userManager.GetUserAsync(principal);
+            if (user is null) return Results.Unauthorized();
+
+            // فقط وقتی پسورد ندارد اجازه بده
+            if (await userManager.HasPasswordAsync(user))
+                return Results.Ok(new { ok = false, message = "برای این حساب قبلاً رمز عبور تنظیم شده است." });
+
+            var res = await userManager.AddPasswordAsync(user, dto.NewPassword);
+            if (!res.Succeeded)
+                return Results.Ok(new { ok = false, message = string.Join(" | ", res.Errors.Select(e => e.Description)) });
+
+            return Results.Ok(new { ok = true, message = "رمز عبور تنظیم شد." });
+        }).WithTags("Auth: Password");
+
+        app.MapPost("/api/auth/password/change", [Authorize] async (
+            UserManager<IdentityUser> userManager,
+            ClaimsPrincipal principal,
+            ChangePasswordDto dto) =>
+        {
+            var user = await userManager.GetUserAsync(principal);
+            if (user is null) return Results.Unauthorized();
+
+            // اگر پسورد ندارد، از مسیر set استفاده کند
+            if (!await userManager.HasPasswordAsync(user))
+                return Results.Ok(new { ok = false, message = "برای این حساب هنوز رمز عبور تنظیم نشده است." });
+
+            var res = await userManager.ChangePasswordAsync(user, dto.OldPassword, dto.NewPassword);
+            if (!res.Succeeded)
+                return Results.Ok(new { ok = false, message = string.Join(" | ", res.Errors.Select(e => e.Description)) });
+
+            return Results.Ok(new { ok = true, message = "رمز عبور با موفقیت تغییر کرد." });
+        }).WithTags("Auth: Password");
+
+
 
         return app;
     }
@@ -142,7 +219,7 @@ public static class AuthOtpEndpoints
             // seed minimal claims (optional)
             await userManager.AddClaimAsync(user, new Claim(ClaimTypes.MobilePhone, e164));
             await userManager.AddClaimAsync(user, new Claim(ClaimTypes.Role, "Customer"));
-            
+
         }
         else
         {
@@ -150,7 +227,7 @@ public static class AuthOtpEndpoints
             {
                 user.PhoneNumberConfirmed = true;
                 await userManager.UpdateAsync(user);
-                
+
             }
         }
 
